@@ -7,9 +7,9 @@ AbstractProtein{T} =
 NUM_ALIGN_STATES = 5
 
 struct PairHMM{Monomer}
+    A::Matrix{Real}                 # alignment transition matrix
+    B::AbstractProcess{Monomer}
     t::Real # time
-    A::Matrix{Real}        # alignment transition matrix
-    B::EvolModel{Monomer}
 end
 
 function _logpdf(hmm::PairHMM{Monomer},
@@ -20,6 +20,7 @@ function _logpdf(hmm::PairHMM{Monomer},
 
     A = hmm.A
     B = hmm.B
+    statdist = statdist(B)
 
     # Apply the forward algorithm to compute p(P_a, P_b | hmm)
     # Complexity O(num_states * n_a * n_b)
@@ -36,8 +37,8 @@ function _logpdf(hmm::PairHMM{Monomer},
         if i == j == 0
             continue
         end
-        α[i, j, MATCH] = logpdf(statdist(B), P_a[i]) +
-                         logpdf(transdist(B, P_a[i]), P_b[i]) +
+        α[i, j, MATCH] = logpdf(statdist, P_a[i]) +
+                         logpdf(transdist(B, t, P_a[i]), P_b[i]) +
                          logsumexp([A[q, M] + α[i - 1, j - 1, q] for q in states])
 
         α[i, j, DELETE] = logpdf(statdist, P_a[i]) +
