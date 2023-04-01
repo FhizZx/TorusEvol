@@ -76,8 +76,10 @@ function get_ideal_bond_length(atoms::String, residue::String)
     return bond_length, bond_length_std
 end
 
-function build_chain_from_angles(sequence, phi_psi, omega, bond_angles, bond_lengths; use_input_bond_angles::Bool=false, use_input_bond_lengths::Bool=false)
-    chain = Chain("A")
+
+
+function build_chain_from_internals(old_chain::Chain, alignment::Alignment{})
+    chain = deepcopy(old_chain)
 
     residue = add_residue(chain, Residue(one_to_three[string(sequence[1])]))
     N = add_atom(residue, Atom("N", Float64[-4.308, -7.299, 1.075], element="N"))
