@@ -15,7 +15,8 @@ struct WrappedDiffusion{T <: Real,
                         InfCov <: AbstractPDMat{T},
                         Drift <: AbstractMatrix{T},
                         StatCov <: AbstractPDMat{T},
-                        Mean <: AbstractVector{T}}
+                        Mean <: AbstractVector{T}
+                        }
 
     μ::Mean                 # mean
     Σ::InfCov               # infinitesimal covariance

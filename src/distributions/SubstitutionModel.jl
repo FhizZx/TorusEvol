@@ -1,7 +1,7 @@
 using BioAlignments
 using LinearAlgebra
 using Distributions
-
+using DelimitedFiles
 # given some rate matrix Q, we can find the transition matrix P(t)
 # by exponentiating Q
 
@@ -20,23 +20,27 @@ using Distributions
 # Q = S diag(Π) where S is symmetric exchangeability matrix,
 #        Π is equilibrium frequencies
 
-struct SubstitutionModel{T <: Real}
-    statdist::Categorical
-    Q::AbstractMatrix{T}
-end
+aminoacids = ['A','R','N','D','C','Q','E','G','H','I',
+              'L','K','M','F','P','S','T','W','Y','V']
 
-function SubstitutionModel(S::AbstractMatrix{T}, Π::AbstractVector{T}) where T <: Real
-    S = Symmetric(S)
+id_to_aa(i) = aminoacids[round(Int, i)]
+
+aminoacid_ids = Dict((aminoacids[i], i) for i ∈ eachindex(aminoacids))
+
+aa_to_id(a) = aminoacid_ids[a]
+
+WAG_S = LowerTriangular(map((x) -> x=="" ? 0.0 : x,
+                        readdlm("./data/params/WAG_S.csv"; skipblanks=false, dims=(20,20))))
+
+WAG_Π = normalize!(vec(readdlm("./data/params/WAG_PI.csv")), 1)
+
+function SubstitutionProcess(S::LowerTriangular, Π::AbstractVector)
+    S = Symmetric(S, :L)
     S[diagind(S)] .= 0.0
     Q = S * Diagonal(Π)
     Q[diagind(Q)] .= sum(-Q, dims = 2)
-    statdist = Categorical(Π)
-    return SubstitutionModel(statdist, Q)
+    #TODO normalize rate of replacement so that the mean is 1
+    return CTMC(Π, Q)
 end
 
-statdist(model::SubstitutionModel) = model.statdist
-
-function transdist(model::SubstitutionModel, t::Real, aa::AminoAcid)
-    P = exp(t * model.Q)
-    return Categorical(vec(P[aa, :]))
-end
+WAG_SubstitutionProcess = SubstitutionProcess(WAG_S, WAG_Π);
