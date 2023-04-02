@@ -25,7 +25,7 @@ function evolve(p::Protein)
 # 3d coordinates of carbon-alpha, nitrogen, carbon on the backbone
 # those are enough to compute 3d coordinates of carbon-alpha from just
 # the dihedral angles
-function proteinfompdb(pdb chain)
+function proteinfompdb(pdbchain)
 
 end
 

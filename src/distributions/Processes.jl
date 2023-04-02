@@ -2,6 +2,9 @@ using Distributions, DistributionsAD
 using LinearAlgebra
 using Memoization
 
+import Base: length, eltype, show
+import Distributions: _logpdf, _logpdf!, mean, _rand!
+
 # __________________________________________________________________________________________
 # Interface for abstract (continuous time) Markovian Processes
 abstract type AbstractProcess{D <: Distribution} end

@@ -1,144 +1,178 @@
 # Much of this code was adapted from Michael Golden's code
+using BioStructures
+using DataStructures
+using LinearAlgebra
+using Rotations
 
+one_to_three = Dict('A' => "ALA", 'C' => "CYS", 'D' => "ASP", 'E' => "GLU", 'F' => "PHE",
+                    'G' => "GLY", 'H' => "HIS", 'I' => "ILE", 'L' => "LEU", 'K' => "LYS",
+                    'M' => "MET", 'N' => "ASN", 'P' => "PRO", 'Q' => "GLN", 'R' => "ARG",
+                    'S' => "SER", 'T' => "THR", 'W' => "TRP", 'V' => "VAL", 'Y' => "TYR")
+one_to_three = DefaultDict("XXX", one_to_three)
 
 # TODO find a source for these values
-function get_ideal_bond_angle(atoms::String, residue::String)
-    bond_angle = 0.0
-    bond_angle_std = 0.0
-    if atoms == "C-N-CA" || atoms == "CA-N-C"
-        if residue == "GLY"
-            bond_angle = 120.6 / 180 * pi
-            bond_angle_std = 1.7  / 180 * pi
-        elseif residue == "PRO"
-            bond_angle = 122.6 / 180 * pi
-            bond_angle_std = 5.0  / 180 * pi
-        else
-            bond_angle = 121.7 / 180 * pi
-            bond_angle_std = 1.8  / 180 * pi
-        end
-    elseif atoms == "N-CA-C" || atoms == "C-CA-N"
-        if residue == "GLY"
-            bond_angle = 112.5 / 180 * pi
-            bond_angle_std = 2.9  / 180 * pi
-        elseif residue == "PRO"
-            bond_angle = 111.8 / 180 * pi
-            bond_angle_std = 2.5  / 180 * pi
-        else
-            bond_angle = 111.2 / 180 * pi
-            bond_angle_std = 2.8  / 180 * pi
-        end
-    elseif atoms == "CA-C-N" || atoms == "N-C-CA"
-        if residue == "GLY"
-            bond_angle = 116.4/ 180 * pi
-            bond_angle_std = 2.1  / 180 * pi
-        elseif residue == "PRO"
-            bond_angle = 116.9 / 180 * pi
-            bond_angle_std = 1.5  / 180 * pi
-        else
-            bond_angle = 116.2 / 180 * pi
-            bond_angle_std = 2.0  / 180 * pi
-        end
-    end
-    return bond_angle+pi, bond_angle_std
+# Empirical backbone bond angle distribution
+# ideal_bond_angle[bond1-bond2, aminoacid] = mean, stddev
+# ideal angle ~ WrappedNormal(mean, stddev) radians
+ideal_bond_angle = Dict(("CA-C-N", 'G') => (116.4, 2.1), ("CA-C-N", 'P') => (116.9, 1.5),
+                        ("C-N-CA", 'G') => (120.6, 1.7), ("C-N-CA", 'P') => (122.6, 5.0),
+                        ("N-CA-C", 'G') => (112.5, 2.9), ("N-CA-C", 'P') => (111.8, 2.5))
+for aa ∈ filter(∉("GP"), aminoacids)
+    ideal_bond_angle["CA-C-N", aa] = (116.2, 2.0)
+    ideal_bond_angle["C-N-CA", aa] = (121.7, 1.8)
+    ideal_bond_angle["N-CA-C", aa] = (111.2, 2.8)
+end
+map!(x->deg2rad.(x), values(ideal_bond_angle))
+
+# Empirical backbone bond length distribution
+# ideal_bond_length[bond, aminoacid] = mean, stddev
+# ideal angle ~ Normal(mean, stddev) Å
+ideal_bond_length = Dict(("C-N", 'P') => (1.341, 0.016),
+                         ("N-CA", 'G') => (1.451, 0.016), ("N-CA", 'P') => (1.466, 0.015),
+                         ("CA-C", 'G') => (1.516, 0.018))
+for aa ∈ filter(∉("P"), aminoacids)
+    ideal_bond_length["C-N",  aa] = (1.329, 0.014)
+end
+for aa ∈ filter(∉("GP"), aminoacids)
+    ideal_bond_length["N-CA", aa] = (1.458, 0.019)
+end
+for aa ∈ filter(∉("G"), aminoacids)
+    ideal_bond_length["CA-C", aa] = (1.525, 0.021)
 end
 
-function get_ideal_bond_length(atoms::String, residue::String)
-    bond_length = 0.0
-    bond_length_std = 0.0
-    if atoms == "N-CA" || atoms == "CA-N"
-        if residue == "GLY"
-            bond_length = 1.451
-            bond_length_std = 0.016
-        elseif residue == "PRO"
-            bond_length = 1.466
-            bond_length_std = 0.015
-        else
-            bond_length = 1.458
-            bond_length_std = 0.019
-        end
-    elseif atoms == "CA-C" || atoms == "C-CA"
-        if residue == "GLY"
-            bond_length = 1.516
-            bond_length_std = 0.018
-        else
-            bond_length = 1.525
-            bond_length_std = 0.021
-        end
-    elseif atoms == "C-N" || atoms == "N-C"
-        if residue == "PRO"
-            bond_length = 1.341
-            bond_length_std = 0.016
-        else
-            bond_length = 1.329
-            bond_length_std = 0.014
+# idealised so that only trans peptide bonds are considered
+# cis peptide bonds are rare and mostly occur in proline
+ideal_omega_angle = rad2deg.((179.6, 5.9))
+
+function backbone_bond_angles_and_lengths(chain::Chain)
+    residues = collectresidues(chain, standardselector)
+    n = length(residues)
+    bond_angles = Matrix{Float64}(undef, 3, n)
+    bond_lengths = Matrix{Float64}(undef, 3, n)
+
+    res = residues[1]
+    atoms = [res["N"],res["CA"],res["C"]]
+    for i ∈ 2:n
+        res = residues[i]
+        new_atoms = [res["N"],res["CA"],res["C"]]
+        for j ∈ 1:3
+            atoms[j] = new_atoms[j]
+            bond_angles[j, i] = bondangle(atoms[j%3+1], atoms[(j+1)%3+1], atoms[j])
+            bond_lengths[j, i] = distance(atoms[(j+1)%3+1], atoms[j])
         end
     end
-    return bond_length, bond_length_std
+    return bond_angles, bond_lengths
 end
 
 
+function Residue(name::AbstractString, number::Integer, ch::Chain)
+    return BioStructures.Residue(name, number, ' ', false, ch)
+end
 
-function build_chain_from_internals(old_chain::Chain, alignment::Alignment{})
-    chain = deepcopy(old_chain)
+function Atom(serial::Int, name::String, coords::Vector{Float64},
+              element::String, residue::StructuralElement)
+    return BioStructures.Atom(serial, name, ' ', coords, 1.0, 13.0, element, "  ", residue)
+end
 
-    residue = add_residue(chain, Residue(one_to_three[string(sequence[1])]))
-    N = add_atom(residue, Atom("N", Float64[-4.308, -7.299, 1.075], element="N"))
-    CA = add_atom(residue, Atom("CA", Float64[-3.695, -7.053, 2.378], element="C"))
-    C = add_atom(residue, Atom("C", Float64[-4.351, -5.868, 3.097], element="C"))
+function build_chain_from_alignment(chain::Chain, alignment, Y)
+    indicesX = findall(∈([MATCH, DELETE]), alignment)
+    indicesY = findall(∈([MATCH, INSERT]), alignment)
 
-    for pos=2:length(sequence)
-        residue = add_residue(chain, Residue(one_to_three[string(sequence[pos])]))
+    n = length(indicesY)
 
-        torsion_angle = phi_psi[pos-1][2] + pi
-        bond_angle, bond_angle_std = get_ideal_bond_angle("CA-C-N", residue.resname)
-        if use_input_bond_angles
-            bond_angle = bond_angles[pos][1] + pi
-        end
-        ab = CA.coord - N.coord
-        bc = C.coord - CA.coord
-        R, R_std = get_ideal_bond_length("C-N", residue.resname)
-        if use_input_bond_lengths
-            R = bond_lengths[pos][1]
-        end
-        D = Float64[R*cos(bond_angle), R*cos(torsion_angle)*sin(bond_angle), R*sin(torsion_angle)*sin(bond_angle)]
-        bchat = bc/LinearAlgebra.norm(bc)
-        n = cross(ab, bchat)/norm(cross(ab, bchat))
-        M = hcat(bchat,cross(n,bchat),n)
-        N = add_atom(residue, Atom("N", M*D + C.coord, element="N"))
+    alignmentX = alignment[indicesX]
+    alignmentY = alignment[indicesY]
+    indicesIY = findall(==(INSERT), alignmentY)
+    indicesMX = findall(==(MATCH), alignmentX)
+    indicesMY = findall(==(MATCH), alignmentY)
 
-        torsion_angle = omega[pos] + pi
-        bond_angle, bond_angle_std = get_ideal_bond_angle("C-N-CA", residue.resname)
-        if use_input_bond_angles
-            bond_angle = bond_angles[pos][2] + pi
-        end
-        ab = C.coord - CA.coord
-        bc = N.coord - C.coord
-        R, R_std = get_ideal_bond_length("N-CA", residue.resname)
-        if use_input_bond_lengths
-            R = bond_lengths[pos][2]
-        end
-        D = Float64[R*cos(bond_angle), R*cos(torsion_angle)*sin(bond_angle), R*sin(torsion_angle)*sin(bond_angle)]
-        bchat = bc/LinearAlgebra.norm(bc)
-        n = cross(ab, bchat)/norm(cross(ab, bchat))
-        M = hcat(bchat,cross(n,bchat),n)
-        CA = add_atom(residue, Atom("CA", M*D + N.coord, element="C"))
+    aminoacids = String(id_to_aa.(Y[1, :]))
 
-        torsion_angle = phi_psi[pos][1] + pi
-        bond_angle, bond_angle_std = get_ideal_bond_angle("N-CA-C", residue.resname)
-        if use_input_bond_angles
-            bond_angle = bond_angles[pos][3] + pi
+    torsion_angles = Matrix{Real}(undef, 3, n)
+    torsion_angles[1, 2:end] = Y[3, 1:(end-1)]      # ψ
+    torsion_angles[3, 2:end] = Y[2, 2:end]          # ϕ
+    torsion_angles[2, indicesIY] .= rand(Normal(ideal_omega_angle...), length(indicesIY))
+    torsion_angles[2, indicesMY] .= omegaangles(chain, standardselector)[indicesMX]
+
+    bond_angles_X, bond_lengths_X = backbone_bond_angles_and_lengths(chain)
+
+    #TODO write this more succintly lol
+    bond_angles = Matrix{Real}(undef, 3, n)
+    for i in indicesIY
+        bond_angles[1, i] = rand(WrappedNormal(ideal_bond_angle["CA-C-N", aminoacids[i]]...))[1]
+        bond_angles[2, i] = rand(WrappedNormal(ideal_bond_angle["C-N-CA", aminoacids[i]]...))[1]
+        bond_angles[3, i] = rand(WrappedNormal(ideal_bond_angle["N-CA-C", aminoacids[i]]...))[1]
+    end
+    bond_angles[:, indicesMY] .= bond_angles_X[:, indicesMX]
+
+    bond_lengths = Matrix{Real}(undef, 3, n)
+    for i in indicesIY
+        bond_lengths[1, i] = abs(rand(Normal(ideal_bond_length["C-N",  aminoacids[i]]...)))
+        bond_lengths[2, i] = abs(rand(Normal(ideal_bond_length["N-CA", aminoacids[i]]...)))
+        bond_lengths[3, i] = abs(rand(Normal(ideal_bond_length["CA-C", aminoacids[i]]...)))
+    end
+    bond_lengths[:, indicesMY] .= bond_lengths_X[:, indicesMX]
+
+    return build_chain_from_internals("Y", aminoacids, torsion_angles, bond_angles, bond_lengths)
+end
+
+function build_chain_from_internals(id::String, aminoacids::String,
+                                    torsion_angles::Matrix{Real}, # ψ       ω       ϕ
+                                    bond_angles::Matrix{Real},    # CA-C-N  C-N-CA  N-CA-C
+                                    bond_lengths::Matrix{Real})   # C-N     N-CA    CA-C
+    n = length(aminoacids)
+    chain = Chain(id)
+    chain.res_list = string.(1:n)
+
+    res = Residue(one_to_three[aminoacids[1]], 1, chain)
+    chain.residues["1"] = res
+
+    res.atom_list = [" N  ", " CA ", " C  "]
+    res.atoms[" N  "] = Atom(1, " N  ", [-4.308, -7.299, 1.075], "N", res)
+    res.atoms[" CA "] = Atom(2, " CA ", [-3.695, -7.053, 2.378], "C", res)
+    res.atoms[" C  "] = Atom(3, " C  ", [-4.351, -5.868, 3.097], "C", res)
+
+    atom_coords = hcat([-4.308, -7.299, 1.075], [-3.695, -7.053, 2.378], [-4.351, -5.868, 3.097])
+
+    for i ∈ 2:n
+        res = Residue(one_to_three[aminoacids[i]], i, chain)
+        res.atom_list =  [" N  ", " CA ", " C  "]
+        chain.residues[string(i)] = res
+
+        for j ∈ 1:3
+            torsion = torsion_angles[j, i] + π
+            angle = bond_angles[j, i] + π
+            ab = atom_coords[:, j%3+1] - atom_coords[:, (j-1)%3+1]
+            bc = atom_coords[:, (j+1)%3+1] - atom_coords[:, j%3+1]
+            R = bond_lengths[j, i]
+            D = Float64[R*cos(angle),
+                        R*cos(torsion)*sin(angle),
+                        R*sin(torsion)*sin(angle)]
+            bc_hat = normalize(bc)
+            normal = normalize(cross(ab, bc_hat))
+            M = hcat(bc_hat, cross(normal, bc_hat), normal)
+            atom_coords[:, (j-1)%3+1] = M*D + atom_coords[:, (j+1)%3+1]
         end
-        ab = N.coord - C.coord
-        bc = CA.coord - N.coord
-        R, R_std = get_ideal_bond_length("CA-C", residue.resname)
-        if use_input_bond_lengths
-            R = bond_lengths[pos][3]
-        end
-        D = Float64[R*cos(bond_angle), R*cos(torsion_angle)*sin(bond_angle), R*sin(torsion_angle)*sin(bond_angle)]
-        bchat = bc/LinearAlgebra.norm(bc)
-        n = cross(ab, bchat)/norm(cross(ab, bchat))
-        M = hcat(bchat,cross(n,bchat),n)
-        C = add_atom(residue, Atom("C", M*D + CA.coord, element="C"))
+
+        res.atoms[" N  "] = Atom(4*i-3, " N  ", vec(atom_coords[:, 1]), "N", res)
+        res.atoms[" CA "] = Atom(4*i-2, " CA ", vec(atom_coords[:, 2]), "C", res)
+        res.atoms[" C  "] = Atom(4*i-1, " C  ", vec(atom_coords[:, 3]), "C", res)
+
+        prevres = chain.residues[string(i-1)]
+        push!(prevres.atom_list, " O  ")
+
+        # a bit of a hacky way to compute the coords of O so that it is planar and roughly
+        # in the right area
+        C = prevres.atoms[" C  "].coords
+        CA = prevres.atoms[" CA "].coords
+        N = res.atoms[" N  "].coords
+
+        a = CA - C
+        b = N - C
+        normal = normalize(cross(a, b))
+
+        o_coords = 0.8 .* [(AngleAxis(-2π/3, normal...) * a).data...] + C
+        prevres.atoms[" O  "] = Atom(4*i-4, " O  ", o_coords, "O", prevres)
     end
     return chain
 end

@@ -80,6 +80,10 @@ function WrappedNormal(μ::AbstractVector{<:Real}, Σ::AbstractMatrix{<:Real})
     WrappedNormal(μ, PDMat(Σ))
 end
 
+function WrappedNormal(μ::Real, Σ::Real)
+    WrappedNormal([μ], [Σ;;])
+end
+
 # Underlying unwrapped distribution
 unwrapped(wn::WrappedNormal) = wn.𝛷
 

@@ -2,9 +2,9 @@ using OffsetArrays
 using BioStructures
 # evolution simulation - sample descendant from ancestor
 
-sequence(chain) = aa_to_id.(collect(string(LongAA(chain, standardselector))))[2:(end-1)]
-angles(chain) = copy(transpose(hcat(filter(x -> !isnan(x), phiangles(chain))[1:(end-1)],
-                     filter(x -> !isnan(x), psiangles(chain))[2:end])))
+sequence(chain) = aa_to_id.(collect(string(LongAA(chain, standardselector))))
+angles(chain) = copy(transpose(hcat(phiangles(chain, standardselector),
+                                    psiangles(chain, standardselector))))
 
 
 # A = transition matrix
@@ -90,10 +90,11 @@ function sample_descendant(X, alignment, subprocess, evolprocess, t)
 end
 
 
-function simulator(t; λ = 0.0001, μ = 0.000101, r = 0.7, γ = 0.1)
-    chain = read("data/1A3N.pdb", PDB)["A"]
+function simulator(t; λ = 0.001, μ = 0.0010001, r = 0.7, γ = 0.9)
+    chain = read("data/pdb/1A3N.pdb", PDB)["A"]
 
     X = vcat(reshape(sequence(chain), 1, :), angles(chain))
+    X[isnan.(X)] .= 0.0
 
     subprocess = WAG_SubstitutionProcess
     diff = WrappedDiffusion([0.0, 1.0], 1.0, 1.0, 4.0, 1.0, 1.0)
@@ -101,7 +102,8 @@ function simulator(t; λ = 0.0001, μ = 0.000101, r = 0.7, γ = 0.1)
 
     mat, pii = TKF92TransitionMatrix(λ, μ, r, t)
     alignment = sample_alignment_from_ancestor(mat, size(X, 2), pii)
-    Y, filled_alignment = sample_descendant(X, alignment, subprocess, evolprocess, t)
+    Y, _ = sample_descendant(X, alignment, subprocess, evolprocess, t)
+    new_chain = build_chain_from_alignment(chain, alignment, Y)
 
-    return filled_alignment
+    return new_chain
 end
