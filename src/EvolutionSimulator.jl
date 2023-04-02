@@ -1,5 +1,12 @@
 using OffsetArrays
 using BioStructures
+
+include("distributions/WrappedNormal.jl")
+include("distributions/Processes.jl")
+include("distributions/SubstitutionModel.jl")
+include("distributions/TKF92.jl")
+include("distributions/WrappedDiffusion.jl")
+include("utils/Backbone.jl")
 # evolution simulation - sample descendant from ancestor
 
 sequence(chain) = aa_to_id.(collect(string(LongAA(chain, standardselector))))
@@ -90,7 +97,7 @@ function sample_descendant(X, alignment, subprocess, evolprocess, t)
 end
 
 
-function simulator(t; λ = 0.001, μ = 0.0010001, r = 0.7, γ = 0.9)
+function simulator(t; λ = 0.1, μ = 0.10001, r = 0.7, γ = 0.1)
     chain = read("data/pdb/1A3N.pdb", PDB)["A"]
 
     X = vcat(reshape(sequence(chain), 1, :), angles(chain))
@@ -102,8 +109,8 @@ function simulator(t; λ = 0.001, μ = 0.0010001, r = 0.7, γ = 0.9)
 
     mat, pii = TKF92TransitionMatrix(λ, μ, r, t)
     alignment = sample_alignment_from_ancestor(mat, size(X, 2), pii)
-    Y, _ = sample_descendant(X, alignment, subprocess, evolprocess, t)
+    Y, filled_alignment = sample_descendant(X, alignment, subprocess, evolprocess, t)
     new_chain = build_chain_from_alignment(chain, alignment, Y)
-
+    display(filled_alignment)
     return new_chain
 end
