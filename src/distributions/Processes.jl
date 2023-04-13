@@ -1,6 +1,7 @@
 using Distributions, DistributionsAD
 using LinearAlgebra
 using Memoization
+using ExponentialAction
 
 import Base: length, eltype, show
 import Distributions: _logpdf, _logpdf!, mean, _rand!
@@ -79,7 +80,7 @@ function _rand!(rng::AbstractRNG, d::JumpingProcessNode, x::VecOrMat{<:Real})
 
 end
 
-_logpdf(d::JumpingProcessNode, x::AbstractVector{<: Real}) = _logpdf!(zeros(1), d, x)[1]
+_logpdf(d::JumpingProcessNode, x::AbstractVector{<: Real}) = _logpdf!(Array{Real}(undef, 1), d, x)[1]
 
 function _logpdf!(r::AbstractArray{<: Real},
                   d::JumpingProcessNode, X::AbstractArray{<: Real})
@@ -93,11 +94,13 @@ end
 struct CTMC #<: AbstractProcess{DiscreteUnivariateDistribution}
     statdist::Categorical     # stationary distribution
     Q::AbstractMatrix{<:Real} # rate matrix
+    B::AbstractMatrix{<:Real}
 end
 
 function CTMC(statvec::AbstractVector{<:Real}, Q::AbstractMatrix{<:Real})
     @assert all(isapprox.(transpose(statvec) * Q, 0.0; atol=1e-16)) string(transpose(statvec) * Q) # statvec ∈ Ker(Qᵗ)
-    return CTMC(Categorical(statvec), Q)
+    B = Matrix{Real}(I, length(statvec), length(statvec))
+    return CTMC(Categorical(statvec), Q, B)
 end
 
 function CTMC(Q::AbstractMatrix{<:Real})
@@ -107,7 +110,7 @@ function CTMC(Q::AbstractMatrix{<:Real})
     return CTMC(statdist, Q)
 end
 
-@memoize transmat(c::CTMC, t::Real) = exp(t * c.Q)
+@memoize transmat(c::CTMC, t::Real) = expv(t, c.Q, c.B)
 
 statdist(c::CTMC) = c.statdist
 

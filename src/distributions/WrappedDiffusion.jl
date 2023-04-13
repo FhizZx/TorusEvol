@@ -130,7 +130,7 @@ end
 function Γ(𝚯::WrappedDiffusion, t::Real)
     @assert t > 0
     if length(𝚯) == 2
-        Γₜ = 𝑠(t, 𝚯.r, 𝚯.q) * 𝚯._½Α⁻¹Σ + 𝑖(t, 𝚯.r, 𝚯.q) * 𝚯.Σ
+        Γₜ = 𝑠(t, 𝚯.r, 𝚯.q) * Matrix(𝚯._½Α⁻¹Σ) + 𝑖(t, 𝚯.r, 𝚯.q) * Matrix(𝚯.Σ)
     else
         throw("Γ only implemented for 2 dimensions")
     end
@@ -164,7 +164,7 @@ end
 
 # __________________________________________________________________________________________
 # Constructors
-function WrappedDiffusionNode(𝚯, t::Float64, θ₀)
+function WrappedDiffusionNode(𝚯, t::Real, θ₀)
     e⁻ᵗᴬ = drift_coefficient(𝚯, t)
     μᴹₜ = cmod(mean(𝚯) .+ e⁻ᵗᴬ * (θ₀ - mean(𝚯) .+ lattice(𝚯)))
     Γₜ = Γ(𝚯, t)
@@ -205,7 +205,7 @@ function _rand!(rng::AbstractRNG, d::WrappedDiffusionNode, x::VecOrMat{<:Real})
 end
 
 # Log density of WN over 𝕋ᵈ
-_logpdf(d::WrappedDiffusionNode, x::AbstractVector{<: Real}) = _logpdf!(zeros(1), d, x)[1]
+_logpdf(d::WrappedDiffusionNode, x::AbstractVector{<: Real}) = _logpdf!(Array{Real}(undef, 1), d, x)[1]
 
 function _logpdf!(r::AbstractArray{<:Real},
                   d::WrappedDiffusionNode, X::AbstractArray{<: Real})

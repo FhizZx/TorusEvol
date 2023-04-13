@@ -9,6 +9,8 @@ include("distributions/WrappedDiffusion.jl")
 include("utils/Backbone.jl")
 # evolution simulation - sample descendant from ancestor
 
+chain_from_pdb(pdb_id::String) = collectchains(retrievepdb(pdb_id, dir="data/pdb"))[1]
+
 sequence(chain) = aa_to_id.(collect(string(LongAA(chain, standardselector))))
 angles(chain) = copy(transpose(hcat(phiangles(chain, standardselector),
                                     psiangles(chain, standardselector))))
@@ -63,6 +65,7 @@ function sample_alignment_from_ancestor(A, n, pii)
     return reverse(alignment)
 end
 
+
 function sample_descendant(X, alignment, subprocess, evolprocess, t)
     indicesX = findall(∈([MATCH, DELETE]), alignment)
     indicesY = findall(∈([MATCH, INSERT]), alignment)
@@ -97,20 +100,31 @@ function sample_descendant(X, alignment, subprocess, evolprocess, t)
 end
 
 
-function simulator(t; λ = 0.1, μ = 0.10001, r = 0.7, γ = 0.1)
+function simulator(T; λ = 0.1, μ = 0.10001, r = 0.9, γ = 0.1, tstep=0.001)
     chain = read("data/pdb/1A3N.pdb", PDB)["A"]
 
-    X = vcat(reshape(sequence(chain), 1, :), angles(chain))
-    X[isnan.(X)] .= 0.0
-
     subprocess = WAG_SubstitutionProcess
-    diff = WrappedDiffusion([0.0, 1.0], 1.0, 1.0, 4.0, 1.0, 1.0)
-    evolprocess = jumping(diff, γ)
 
-    mat, pii = TKF92TransitionMatrix(λ, μ, r, t)
-    alignment = sample_alignment_from_ancestor(mat, size(X, 2), pii)
-    Y, filled_alignment = sample_descendant(X, alignment, subprocess, evolprocess, t)
-    new_chain = build_chain_from_alignment(chain, alignment, Y)
-    display(filled_alignment)
-    return new_chain
+    helix = deg2rad.([-90.0, -30.0])
+    diff = WrappedDiffusion(helix, 1.0, 1.0, 4.0, 1.0, 1.0)
+    evolprocess = jumping(diff, γ)
+    mat, pii = TKF92TransitionMatrix(λ, μ, r, tstep)
+
+    structure = ProteinStructure("1A3N simulated", Dict())
+    for t ∈ 0:tstep:T
+        println(t)
+        X = vcat(reshape(sequence(chain), 1, :), angles(chain))
+        X[isnan.(X)] .= 0.0
+
+        alignment = sample_alignment_from_ancestor(mat, size(X, 2), pii)
+        Y, _ = sample_descendant(X, alignment, subprocess, evolprocess, tstep)
+        chain = build_chain_from_alignment(chain, alignment, Y)
+        i = round(Int,t/tstep)
+        model = Model(i, Dict("Y" => chain), structure)
+        structure.models[i] = model
+        # writepdb("output/evol/chain"*lpad(string(round(Int,t/tstep)),3,"0")*".pdb", chain)
+
+    end
+
+    return structure
 end

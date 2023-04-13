@@ -4,14 +4,14 @@ using LogExpFunctions, LinearAlgebra
 using Plots
 using DistributionsAD
 
-import Base: length, eltype, show
+import Base: length, eltype, show, size
 import Distributions: _logpdf, _logpdf!, mean, _rand!
 
 # __________________________________________________________________________________________
 # Helper functions
 
 # Map x to [-π, π)
-cmod(x::Real) = rem2pi(x, RoundNearest)
+cmod(x::Real) = rem(x,2π, RoundNearest)
 
 cmod(v::AbstractArray{<:Real}) = cmod.(v)
 
@@ -107,7 +107,7 @@ function _rand!(rng::AbstractRNG, wn::WrappedNormal, x::VecOrMat{<: Real})
 end
 
 # Log density of WN over 𝕋ᵈ
-_logpdf(wn::WrappedNormal, x::AbstractVector{<: Real}) = _logpdf!(zeros(1), wn, x)[1]
+_logpdf(wn::WrappedNormal, x::AbstractVector{<: Real}) = _logpdf!(Array{Real}(undef, 1), wn, x)[1]
 
 function _logpdf!(r::AbstractArray{<: Real},
                   wn::WrappedNormal, X::AbstractArray{<: Real})

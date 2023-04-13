@@ -5,8 +5,8 @@ INSERT=4
 END=5
 NUM_ALIGN_STATES = 5
 
-function TKF92TransitionMatrix(λ::Real, μ::Real, r::Real, t::Real)
-    ltransMat = Array{Float64}(undef, NUM_ALIGN_STATES, NUM_ALIGN_STATES)
+function TKF92TransitionMatrix(λ::Real, μ::Real, r::Real, t::Real; unitinserts::Bool=false)
+    ltransMat = Array{Real}(undef, NUM_ALIGN_STATES, NUM_ALIGN_STATES)
     ltransMat = fill!(ltransMat, -Inf)
 
     # log(μ*β(t))
@@ -33,8 +33,9 @@ function TKF92TransitionMatrix(λ::Real, μ::Real, r::Real, t::Real)
     # need to change back
     #pii = r + (1-r)*λ*β
     pii = r + (1-r) * exp(lpbi)
+    lpii = unitinserts ? -Inf : logaddexp(lr, log1mexp(lr) + lpbi)
     #pie = 1 #pie = 1 - pii
-    lpie = 0
+    lpie = log1mexp(lpii)
 
     #pef = λ / μ
     lpef = lλ - lμ
@@ -62,7 +63,7 @@ function TKF92TransitionMatrix(λ::Real, μ::Real, r::Real, t::Real)
     ltransMat[START, DELETE] = lpSb + lpbe + lpef + lpfd
     ltransMat[START, END] = lpSb + lpbe + lpeE
 
-    # ltransMat[INSERT, INSERT] = log(pii)
+    ltransMat[INSERT, INSERT] = lpii
     ltransMat[INSERT, MATCH] = lpie + lpef + lpfm
     ltransMat[INSERT, DELETE] = lpie + lpef + lpfd
     ltransMat[INSERT, END] = lpie + lpeE
