@@ -12,8 +12,9 @@ Turing.setrdcache(true)
 
     sub = WAG_SubstitutionProcess
 
+
     # Sample structure parameters
-    # todo more principles prior definition
+    # todo more principled prior definition
     mean ~ filldist(Uniform(-π, π), 2)
     var ~ filldist(Exponential(1), 4)
     # α_corr ~ truncated(Normal(0, 1), -1, 1)
@@ -61,6 +62,12 @@ function sample_posterior(chainX, chainY, l, n_samples)
     alg = HMC(0.05, 10, :t, :mean, :var, :γ, :r, :λ, :seq_length)
 
     chain = sample(model, alg, n_samples)
+
+    # Index the chain with the persistence probabilities.
+    subchain = chain[["t", "r", "seq_length"]]
+
+    plt = plot(subchain; seriestype=:traceplot, title="Persistence Probability", legend=false)
+    savefig(plt, "persistence.png")
     return chain
 end
 
@@ -140,8 +147,8 @@ end
 function backward_sampling(α, A)
     n_x, n_y = size(α) .- 2
     states = 1:4
-    logp = logsumexp([α[n_x, n_y, q] + A[q, END] for q in states])
-    s = rand(Categorical(exp.([α[n_x, n_y, q] + A[q, END] - logp for q in states])))
+    logp = logsumexp([α[n_x+2, n_y+2, q] + A[q, END] for q in states])
+    s = rand(Categorical(exp.([α[n_x+2, n_y+2, q] + A[q, END] - logp for q in states])))
 
     i = n_x
     j = n_y
@@ -154,10 +161,10 @@ function backward_sampling(α, A)
         new_i = s ∈ [MATCH, DELETE] ? (i-1) : i
         new_j = s ∈ [MATCH, INSERT] ? (j-1) : j
 
-        lpS = A[START, s] + α[new_i, new_j, START] - α[i, j, s]
-        lpM = A[MATCH, s] + α[new_i, new_j, MATCH] - α[i, j, s]
-        lpD = A[DELETE, s] + α[new_i, new_j, DELETE] - α[i, j, s]
-        lpI = A[INSERT, s] + α[new_i, new_j, INSERT] - α[i, j, s]
+        lpS = A[START, s] + α[new_i+2, new_j+2, START] - α[i+2, j+2, s]
+        lpM = A[MATCH, s] + α[new_i+2, new_j+2, MATCH] - α[i+2, j+2, s]
+        lpD = A[DELETE, s] + α[new_i+2, new_j+2, DELETE] - α[i+2, j+2, s]
+        lpI = A[INSERT, s] + α[new_i+2, new_j+2, INSERT] - α[i+2, j+2, s]
 
         i = new_i
         j = new_j
@@ -178,6 +185,27 @@ function filled_alignment(alignment, X, Y)
     filled_alignment[5:6, indicesY] .= Y[2:3, :]
 
     return filled_alignment
+end
+
+function indel_angle_change(filled)
+    num_indels = 0
+    num = 0
+    indel_angle = [0, 0]
+    angle = [0, 0]
+    j = -1
+    for i in axes(filled, 2)
+        if filled[1, i] == '-' || filled[4, i] == '-'
+            if j >= 1
+                indel_angle += abs.(filled[2:3, j] .- filled[5:6, j])
+            end
+            num_indels += 1
+        else
+            angle += abs.(filled[2:3, i] .- filled[5:6, i])
+            j = i
+            num += 1
+        end
+    end
+    return indel_angle / num_indels, angle / num
 end
 
 function pair_align(chainX, chainY; t=0.1)
@@ -210,7 +238,7 @@ function pair_align(chainX, chainY; t=0.1)
     n_y = size(Y, 2)
     states = 1:4
 
-    α = OffsetArray{Real}(undef, -1:n_x, -1:n_y, states)
+    α = Array{Real}(undef, n_x+2, n_y+2, 4)
     forward!(α, X, Y, A, sub, diff, t)
     println("Alignments sampled from TKF92-WAG_WrappedDiff evol model")
     for _ in 1:10
@@ -218,9 +246,11 @@ function pair_align(chainX, chainY; t=0.1)
 
         filled = filled_alignment(alignment, X, Y)
         seqX, seqY = string(filled[1, :]...), string(filled[4, :]...)
-        println(seqX)
-        println(seqY)
-        println()
+        display(filled)
+        display(indel_angle_change(filled))
+        #println(seqX)
+        #println(seqY)
+        #println()
     end
     return
 end

@@ -20,7 +20,7 @@ using DelimitedFiles
 # Q = S diag(Π) where S is symmetric exchangeability matrix,
 #        Π is equilibrium frequencies
 
-aminoacids = "ARNDCQEGHILKMFPSTWYV"
+aminoacids = "ARNDCQEGHILKMFPSTWYV-"
 
 id_to_aa(i) = aminoacids[round(Int, i)]
 

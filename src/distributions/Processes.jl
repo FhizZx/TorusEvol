@@ -27,6 +27,18 @@ statdist(p::ProductProcess) = arraydist(statdist.(p.processes))
 transdist(p::ProductProcess, t::Real, x₀) = arraydist(transdist.(p.procceses, Ref(t), Ref(x₀)))
 
 # __________________________________________________________________________________________
+# Mixture of processes
+struct MixtureProcess{D <: Distribution} <: AbstractProcess{D}
+    weights::AbstractVector{Real}
+    processes::AbstractVector{AbstractProcess{D}}
+end
+
+statdist(p::ProductProcess) = MixtureModel(statdist.(p.processes), p.weights)
+transdist(p::ProductProcess, t::Real, x₀) = MixtureModel(transdist.(p.procceses, Ref(t), Ref(x₀)),
+                                                         p.weights)
+
+
+# __________________________________________________________________________________________
 # Jumping process - returns to stationary distribution at some rate γ
 struct JumpingProcess
     p # original process
