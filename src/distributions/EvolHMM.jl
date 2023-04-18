@@ -14,8 +14,11 @@ function EvolHMM(n, m, A, sub, diff, t)
 end
 
 function _logpdf(d::EvolHMM, x::AbstractMatrix{<:Real})
+    # Segment protein data
+    @views xs = [x[:,1:lengths[1]]]
+    @views append!(xs, [x[:, (lengths[i]+1):lengths[i+1]] for i ∈ 1:(length(lengths)-1)])
 
-    return forward!(d.α, x[1:3, 1:d.n], x[4:6, 1:d.m], d.A, d.sub, d.diff, d.t)
+    return forward!(d, xs, d.A, d.sub, d.diff, d.t)
 end
 
 size(d::PairHMM) = (6, max(d.n, d.m))
