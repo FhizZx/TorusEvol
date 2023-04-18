@@ -96,7 +96,7 @@ function build_chain_from_alignment(chain::Chain, alignment, Y)
 
     bond_angles_X, bond_lengths_X = backbone_bond_angles_and_lengths(chain)
 
-    #TODO write this more succintly lol
+    #TODO write this more succintly
     bond_angles = Matrix{Real}(undef, 3, n)
     for i in indicesIY
         bond_angles[1, i] = rand(WrappedNormal(ideal_bond_angle["CA-C-N", aminoacids[i]]...))[1]

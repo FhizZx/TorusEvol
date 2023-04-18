@@ -1,5 +1,3 @@
-
-
 struct EvolHMM <: ContinuousMatrixDistribution
     M::Integer                      # Total alignment length M = sum(lengths)
     lengths::AbstractVector{Int}
@@ -10,12 +8,13 @@ struct EvolHMM <: ContinuousMatrixDistribution
     α::Array{Real}
 end
 
-function PairHMM(n, m, A, sub, diff, t)
+function EvolHMM(n, m, A, sub, diff, t)
     α = Array{Real}(undef, n+2, m+2, 4)
     return PairHMM(n, m, A, sub, diff, t, α)
 end
 
-function _logpdf(d::PairHMM, x::AbstractMatrix{<:Real})
+function _logpdf(d::EvolHMM, x::AbstractMatrix{<:Real})
+
     return forward!(d.α, x[1:3, 1:d.n], x[4:6, 1:d.m], d.A, d.sub, d.diff, d.t)
 end
 

@@ -20,13 +20,7 @@ using DelimitedFiles
 # Q = S diag(Π) where S is symmetric exchangeability matrix,
 #        Π is equilibrium frequencies
 
-aminoacids = "ARNDCQEGHILKMFPSTWYV-"
 
-id_to_aa(i) = aminoacids[round(Int, i)]
-
-aminoacid_ids = Dict((aminoacids[i], i) for i ∈ eachindex(aminoacids))
-
-aa_to_id(a) = aminoacid_ids[a]
 
 WAG_S = LowerTriangular(map((x) -> x=="" ? 0.0 : x,
                         readdlm("./data/params/WAG_S.csv"; skipblanks=false, dims=(20,20))))
