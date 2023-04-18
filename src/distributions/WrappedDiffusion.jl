@@ -215,9 +215,10 @@ function _logpdf!(r::AbstractArray{<:Real},
     if t < eps(typeof(t))
         r .= map(θₜ -> d.θ₀ == θₜ, cmod(X))
     else
-        r .= logsumexp(logpdf.(d.driftdists, Ref(cmod(X))) .+
-                       log.(pdf(d.winddist));
-                       dims=1)
+        # r .= logsumexp(logpdf.(d.driftdists, Ref(cmod(X))) .+
+        #                log.(pdf(d.winddist));
+        #                dims=1)
+        logsumexp!(r, logpdf.(d.driftdists, Ref(cmod(X))) .+ log.(pdf(d.winddist)))
     end
 
     r

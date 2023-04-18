@@ -109,33 +109,51 @@ function forward!(α, X, Y, A, sub, diff, t)
     # Initial state
     α[2, 2, START] = 0
 
-    #todo implement better categorical distribution
-    #can optimize this more by not allocating statX/statY/trans
+
+        #todo implement better categorical distribution
+        #can optimize this more by not allocating statX/statY/trans
+
     statX = logpdf.(statdist(sub), X[1, :]) .+ logpdf(statdist(diff), X[2:3, :])
+
     statY = logpdf.(statdist(sub), Y[1, :]) .+ logpdf(statdist(diff), Y[2:3, :])
+
     trans = Array{Real}(undef, n_x, n_y)
+    dists = Array{JumpingProcessNode}(undef, n_y)
+
+
     for j ∈ 1:n_y
-        trans[:, j] .= logpdf.(transdist(sub, t, Y[1, j]), X[1, :]) .+
-                       logpdf(transdist(diff, t, Y[2:3, j]), X[2:3, :])
+        dists[j] = transdist(diff, t, Y[2:3, j])
+    end
+
+
+
+    for j ∈ 1:n_y
+        @views logpdf!(trans[:, j], dists[j], X[2:3, :])
+    end
+
+
+    for j ∈ 1:n_y
+        trans[:, j] .+= logpdf.(transdist(sub, t, Y[1, j]), X[1, :]) #.+
+                           #logpdf(transdist(diff, t, Y[2:3, j]), X[2:3, :])
     end
 
     # Recursion
+
     for i ∈ 0:n_x, j ∈ 0:n_y
         if i > 0 && j > 0
             α[i+2, j+2, MATCH] = statX[i] + trans[i, j] +
-                             logsumexp([A[q, MATCH] + α[i+2 - 1, j+2 - 1, q] for q in states])
+                                logsumexp([A[q, MATCH] + α[i+2 - 1, j+2 - 1, q] for q in states])
         end
 
         if i > 0
             α[i+2, j+2, DELETE] = statX[i] +
-                              logsumexp([A[q, DELETE] + α[i+2 - 1, j+2, q] for q in states])
+                                logsumexp([A[q, DELETE] + α[i+2 - 1, j+2, q] for q in states])
         end
 
         if j > 0
             α[i+2, j+2, INSERT] = statY[j] +
-                              logsumexp([A[q, INSERT] + α[i+2, j+2 - 1, q] for q in states])
+                                logsumexp([A[q, INSERT] + α[i+2, j+2 - 1, q] for q in states])
         end
-
     end
 
     # Finally need to enter the END state to complete the chain
@@ -240,17 +258,17 @@ function pair_align(chainX, chainY; t=0.1)
 
     α = Array{Real}(undef, n_x+2, n_y+2, 4)
     forward!(α, X, Y, A, sub, diff, t)
-    println("Alignments sampled from TKF92-WAG_WrappedDiff evol model")
-    for _ in 1:10
-        alignment = backward_sampling(α, A)
+    # println("Alignments sampled from TKF92-WAG_WrappedDiff evol model")
+    # for _ in 1:10
+    #     alignment = backward_sampling(α, A)
 
-        filled = filled_alignment(alignment, X, Y)
-        seqX, seqY = string(filled[1, :]...), string(filled[4, :]...)
-        display(filled)
-        display(indel_angle_change(filled))
-        #println(seqX)
-        #println(seqY)
-        #println()
-    end
+    #     filled = filled_alignment(alignment, X, Y)
+    #     seqX, seqY = string(filled[1, :]...), string(filled[4, :]...)
+    #     display(filled)
+    #     display(indel_angle_change(filled))
+    #     #println(seqX)
+    #     #println(seqY)
+    #     #println()
+    # end
     return
 end
