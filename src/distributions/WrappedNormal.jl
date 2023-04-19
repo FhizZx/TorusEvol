@@ -107,16 +107,37 @@ function _rand!(rng::AbstractRNG, wn::WrappedNormal, x::VecOrMat{<: Real})
 end
 
 # Log density of WN over 𝕋ᵈ
-_logpdf(wn::WrappedNormal, x::AbstractVector{<: Real}) = _logpdf!(Array{Real}(undef, 1), wn, x)[1]
+function _logpdf(wn::WrappedNormal, x::AbstractVector{<: Real})
+    return logsumexp(logpdf(wn.𝛷, cmod.(x) .+ wn.𝕃))
+end
 
 function _logpdf!(r::AbstractArray{<: Real},
-                  wn::WrappedNormal, X::AbstractArray{<: Real})
-    n = size(wn.𝕃, 2)
-    Θ = cmod.(X)
-    lp = logpdf(wn.𝛷, hcat(map(θ -> θ .+ wn.𝕃, eachcol(Θ))...))
-    r .= map(v -> logsumexp(v), eachcol(reshape(lp, n, :)))
+                  wn::WrappedNormal, X::AbstractMatrix{<: Real})
+    shifted_X = cmod.(X)
+    shifted_logp = similar(r)
+    fill!(r, -Inf)
+    tape = hcat(r, shifted_logp)
+    r = @view tape[:, 1]
+    shifted_logp = @view tape[:, 2]
+    prev_col = [0.0, 0.0]
+    for col ∈ eachcol(wn.𝕃)
+        shifted_X .+= col .- prev_col
+        prev_col = col
+        logpdf!(shifted_logp, wn.𝛷, shifted_X)
+        logsumexp!(r, tape)
+    end
+    copy(r)
+end
+
+function _accuratelogpdf!(r::AbstractArray{<: Real},
+                          wn::WrappedNormal, X::AbstractMatrix{<: Real})
+    d = size(X, 1); n = size(X, 2); m = size(wn.𝕃, 2)
+    a = reshape(X, d, n, :) .+ reshape(wn.𝕃, d, :, m)
+    lps = reshape(logpdf(wn.𝛷, reshape(a, d, :)), n, m)
+    logsumexp!(r, lps)
     r
 end
+
 
 # Mean of WN over 𝕋ᵈ
 mean(wn::WrappedNormal) = mean(wn.𝛷)
@@ -132,41 +153,8 @@ show(io::IO, wn::WrappedNormal) = print(io, "WrappedNormal(" *
                                           "\nΣ: " * string(wn.𝛷.Σ) *
                                           "\n)")
 
-# Plot heatmap of the density over 𝕋²
-function plotpdf(wn::ContinuousDistribution; step=π/100)
-    ticks = (-π):step:π
-    if length(wn) == 2
-        grid = hcat([[j, i] for i in ticks, j in ticks]...)
-        z = reshape(pdf(wn, grid), length(ticks), :)
-        heatmap(ticks, ticks, z, size=(400, 400), title="WN Density",
-                xlabel="ϕ angles", ylabel="ψ angles")
-    else
-        throw("plotting not implemented for d != 2")
-    end
-end
-
-# Scatter plot of samples from wn
-function plotsamples(wn::ContinuousDistribution, n_samples)
-    samples = rand(wn, n_samples)
-    scatter(eachrow(samples)...,size=(400,400),
-            title="WN Samples", label="", alpha=0.3)
-end
-
 # Plot the points in 𝕃
 function plotlattice(wn::WrappedNormal)
     @assert length(wn) <= 3
     scatter(eachrow(wn.𝕃)...,size=(400,400), title="WN Lattice", label="")
 end
-
-
-# __________________________________________________________________________________________
-# Testing Methods
-
-# Compute how much of the mass of the unwrapped distribution is recovered by 𝕃 into [-π, π)ᵈ
-# Should be close to 1.0
-function totalmass(wn::WrappedNormal; step=π/100)
-    d = length(wn)
-    grid = map(collect, vec(collect(Base.product(fill(-π:step:π, d)...))))
-    A = (2π)^d
-    sum(pdf(wn, grid)) * A / length(grid)
-end;
