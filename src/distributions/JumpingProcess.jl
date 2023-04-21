@@ -1,5 +1,6 @@
 using Distributions
 using Bijectors
+using Memoization
 
 # ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 # Jumping process - returns to stationary distribution with some rate γ
@@ -17,9 +18,45 @@ jumping(p, rate::Real) = JumpingProcess(p, rate)
 
 statdist(j::JumpingProcess) = statdist(j.p)
 transdist(j::JumpingProcess, t::Real, x₀::AbstractVector{<:Real}) = JumpingProcessNode(j, t, x₀)
+function transdist!(r::AbstractVector, j::JumpingProcess,
+                    t::Real, X₀::AbstractVecOrMat{<:Real})
+    jump_prob = 1 - exp(- rate(j) * t)
+    lp = log1mexp(-rate(j) * t)
+    lnp = -rate(j) * t
+    a = Array{Distribution}(undef, size(r)); transdist!(a, raw_process(j), t, X₀)
+    r .= JumpingProcessNode.(Ref(statdist(raw_process(j))),
+                             a, Ref(jump_prob), Ref(lp), Ref(lnp))
+    r
+end
 
-#todo optimize logpdf/jointlogpdf for large data size
+# optimized for jumping processes
+# Create a matrix r[i, j] = ℙ[Xᵢ, Yⱼ | process p]
+# which gives the joint probability of points Xᵢ and Yⱼ under process p
+@memoize function jointlogpdf!(r::AbstractMatrix{<:Real}, p::JumpingProcess{D}, t::Real,
+                      X::AbstractVecOrMat{<:Real},
+                      Y::AbstractVecOrMat{<:Real}) where D <: Distribution
+    n = size(X, 2)
+    m = size(Y, 2)
+    # Construct transition distributions for each datapoint in Y
+    transdists = Array{D}(undef, m)
+    transdist!(transdists, raw_process(p), t, Y)
 
+    #r .= logpdf(statdist(p), Y)'
+    lp = fill(log1mexp(-rate(p) * t), n)
+    lnp = -rate(p) * t
+
+    # Make each row of r into the log probability of the stationary distribution at Y
+    # Add to each column the log transition density from Y to X
+    tpd = similar(r, n)
+    stX = similar(tpd)
+    for j ∈ 1:m
+        tpd .= logpdf(transdists[j], X)
+        stX .= logpdf(statdist(p), X)
+        stY = logpdf(statdist(p), Y[:, j])
+        r[:, j] .= stY .+ logaddexp.(lp .+ stX, lnp .+ tpd)
+    end
+    return r
+end
 
 struct JumpingProcessNode <: ContinuousMultivariateDistribution
     statdist

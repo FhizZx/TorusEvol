@@ -3,6 +3,7 @@ uuid = "4b860a26-b3bc-4b38-a9ed-83c1dc5d19b0"
 version = "0.1.0"
 
 [deps]
+AdvancedMH = "5b7e9947-ddc0-4b3f-9b55-0d8042f74170"
 Bijectors = "76274a88-744f-5084-9051-94815aaf08c4"
 Bio3DView = "99c8bb3a-9d13-5280-9740-b4880ed9c598"
 BioAlignments = "00701ae9-d1dc-5365-b64a-a3a3ebf5695e"

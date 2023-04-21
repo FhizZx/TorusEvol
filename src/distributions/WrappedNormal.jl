@@ -43,13 +43,9 @@ end
 # Wrapped Normal Distribution
 
 # WN(μ, Σ) - analogue of N(μ, Σ) over 𝕋ᵈ
-struct WrappedNormal{T    <: Real,
-                     Cov  <: AbstractPDMat{T}, # enforce that covariance is positive def
-                     Mean <: AbstractVector{T}
-                    } <: ContinuousMultivariateDistribution
-
-    𝛷::MvNormal{T, Cov, Mean}  # the underlying unwrapped distribution
-    𝕃::Matrix{T}               # 𝕃 ⊂ 2πℤᵈ truncated torus lattice
+struct WrappedNormal <: ContinuousMultivariateDistribution
+    𝛷::ContinuousMultivariateDistribution # the underlying unwrapped distribution
+    𝕃::AbstractMatrix{<:Real}  # 𝕃 ⊂ 2πℤᵈ truncated torus lattice
                                #    used to collect (most of) the probability mass
                                #    of 𝛷 into [-π, π)ᵈ
 end
@@ -64,10 +60,10 @@ end
 # 𝕃 = 2π[-r,r]ᵈ ∩ B(𝛷, R) (in sqmahal distance)
 function WrappedNormal(μ::AbstractVector{T}, Σ::AbstractPDMat{T}) where T <: Real
     𝛷 = MvNormal(cmod(μ), Σ)
-    R = 10.0
+    R = 5.0
     r = ceil(Int, R * 1.5)
     𝕃 = discrete_ellipsoid(𝛷, r, R)
-    WrappedNormal{T, typeof(Σ), typeof(mean(𝛷))}(𝛷, 𝕃)
+    WrappedNormal(𝛷, 𝕃)
 end
 
 # Make μ and Σ have the same element type
@@ -106,7 +102,7 @@ Base.eltype(wn::WrappedNormal) = eltype(wn.𝛷)
 
 # Generate samples according to WN
 #optimized
-function _rand!(rng::AbstractRNG, wn::WrappedNormal, x::VecOrMat{<: Real})
+function _rand!(rng::AbstractRNG, wn::WrappedNormal, x::AbstractVecOrMat{<: Real})
     x .= cmod(_rand!(rng, wn.𝛷, x))
     return x
 end

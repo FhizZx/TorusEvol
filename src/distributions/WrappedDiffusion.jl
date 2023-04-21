@@ -12,19 +12,13 @@ import Distributions: _logpdf, _logpdf!, mean, _rand!
 # Wrapped Diffusion
 
 # WD(μ, Σ, Α) - analogue of OU(μ, Σ, Α) over 𝕋ᵈ, with stationary distribution ~ WN(μ, ½Α⁻¹Σ)
-struct WrappedDiffusion{T <: Real,
-                        InfCov <: AbstractPDMat{T},
-                        Drift <: AbstractMatrix{T},
-                        StatCov <: AbstractPDMat{T},
-                        Mean <: AbstractVector{T}
-                        } <: AbstractProcess{ContinuousMultivariateDistribution}
+struct WrappedDiffusion <: AbstractProcess{ContinuousMultivariateDistribution}
+    μ::AbstractVector{<:Real}           # mean
+    Σ::AbstractMatrix{<:Real}           # infinitesimal covariance
+    Α::AbstractMatrix{<:Real}           # drift
+    _½Α⁻¹Σ::AbstractMatrix{<:Real}      # stationary covariance
 
-    μ::Mean                 # mean
-    Σ::InfCov               # infinitesimal covariance
-    Α::Drift                # drift
-    _½Α⁻¹Σ::StatCov         # stationary covariance
-
-    statdist::WrappedNormal{T, StatCov, Mean} # stationary distribution
+    statdist::WrappedNormal # stationary distribution
 
     r::Real                 # memoized 𝑟(Α)
     q::Real                 # memoized 𝑞(Α)
@@ -42,9 +36,7 @@ function WrappedDiffusion(μ::AbstractVector{T},
     μ = cmod(μ)
     w = WrappedNormal(μ, _½Α⁻¹Σ)
 
-    WrappedDiffusion{T, typeof(Σ), typeof(Α), typeof(_½Α⁻¹Σ), typeof(μ)}(
-                     μ, Σ, Α, _½Α⁻¹Σ,
-                     w, 𝑟(Α), 𝑞(Α))
+    WrappedDiffusion(μ, Σ, Α, _½Α⁻¹Σ, w, 𝑟(Α), 𝑞(Α))
 end
 
 # Make μ, Σ and Α have the same element type
@@ -219,7 +211,7 @@ eltype(d::WrappedDiffusionNode) = eltype(d.𝚯);
 
 # optimized
 # Generate samples according to the transition distribution
-function _rand!(rng::AbstractRNG, d::WrappedDiffusionNode, x::VecOrMat{<:Real})
+function _rand!(rng::AbstractRNG, d::WrappedDiffusionNode, x::AbstractVecOrMat{<:Real})
     n = size(x, 2)
 
     # step 1 - sample from winddist
@@ -300,9 +292,6 @@ function anim_logtpd_2D(𝚯, θ₀)
     gif(anim, "images/logtpd.gif", fps=1)
 end
 
-
-w = WrappedNormal([2.5, 0.5], PDiagMat([0.6, 1.5]))
-diff = WrappedDiffusion([0.0, 1.0], 1.0, 1.0, 4.0, 1.0, 1.0)
 
 using Random
 

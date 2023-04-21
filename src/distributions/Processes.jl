@@ -1,7 +1,7 @@
 using Distributions, DistributionsAD
 using LinearAlgebra
 using Memoization
-using ExponentialAction
+
 
 import Base: length, eltype, show
 import Distributions: _logpdf, _logpdf!, mean, _rand!
@@ -25,7 +25,7 @@ end
 
 # Create a matrix r[i, j] = ℙ[Xᵢ, Yⱼ | process p]
 # which gives the joint probability of points Xᵢ and Yⱼ under process p
-function jointlogpdf!(r::AbstractMatrix{<:Real}, p::AbstractProcess{D}, t::Real,
+@memoize function jointlogpdf!(r::AbstractMatrix{<:Real}, p::AbstractProcess{D}, t::Real,
                       X::AbstractVecOrMat{<:Real},
                       Y::AbstractVecOrMat{<:Real}) where D <: Distribution
     m = size(Y, 2)
@@ -33,20 +33,41 @@ function jointlogpdf!(r::AbstractMatrix{<:Real}, p::AbstractProcess{D}, t::Real,
     transdists = Array{D}(undef, m); transdist!(transdists, p, t, Y)
 
     # Make each row of r into the log probability of the stationary distribution at Y
-    r .= logpdf(statdist(p), Y)'
+    #r .= logpdf(statdist(p), Y)'
 
     # Add to each column the log transition density from Y to X
-    Threads.@threads for j ∈ 1:m
-        r[:, j] .+= logpdf(transdists[j], X)
+    for j ∈ 1:m
+        r[:, j] .= logpdf(transdists[j], X) .+ logpdf(statdist(p), Y[:, j])
     end
     return r
 end
 
 
-# # __________________________________________________________________________________________
-# # Product of several processes - when modelling certain evolutionary events independently
+# __________________________________________________________________________________________
+# Product of several processes - when modelling certain evolutionary events independently
 # struct ProductProcess{D <: Distribution} <: AbstractProcess{D}
 #     processes::AbstractVector{AbstractProcess{D}}
+# end
+
+# function jointlogpdf!(r::AbstractMatrix{<:Real},
+#                       p::ProductProcess{D}, t::Real,
+#                       X::AbstractVecOrMat{<:Real},
+#                       Y::AbstractVecOrMat{<:Real}) where D <: Distribution
+#     m = size(Y, 2)
+#     xs = split according to processes
+#     ys = split according to processes
+#     r .= sum(jointlogpdf!.(r, p.processes, xs, ys))
+#     # Construct transition distributions for each datapoint in Y
+#     transdists = Array{D}(undef, m); transdist!(transdists, p, t, Y)
+
+#     # Make each row of r into the log probability of the stationary distribution at Y
+#     #r .= logpdf(statdist(p), Y)'
+
+#     # Add to each column the log transition density from Y to X
+#     for j ∈ 1:m
+#         r[:, j] .= logpdf(transdists[j], X) .+ logpdf(statdist(p), Y[:, j])
+#     end
+#     return r
 # end
 
 # statdist(p::ProductProcess) = arraydist(statdist.(p.processes))
