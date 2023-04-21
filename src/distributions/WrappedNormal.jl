@@ -3,6 +3,7 @@ using PDMats
 using LogExpFunctions, LinearAlgebra
 using Plots
 using DistributionsAD
+using Bijectors
 
 import Base: length, eltype, show, size
 import Distributions: _logpdf, _logpdf!, mean, _rand!
@@ -84,6 +85,8 @@ function WrappedNormal(μ::Real, Σ::Real)
     WrappedNormal([μ], [Σ;;])
 end
 
+
+
 # Underlying unwrapped distribution
 unwrapped(wn::WrappedNormal) = wn.𝛷
 
@@ -95,12 +98,13 @@ lattice(wn::WrappedNormal) = wn.𝕃
 # Distribution Methods
 
 # Domain Dimension
-length(wn::WrappedNormal) = length(wn.𝛷)
+Base.length(wn::WrappedNormal) = length(wn.𝛷)
 
 # Domain field type
-eltype(wn::WrappedNormal) = eltype(wn.𝛷)
+Base.eltype(wn::WrappedNormal) = eltype(wn.𝛷)
 
 # Generate samples according to WN
+#optimized
 function _rand!(rng::AbstractRNG, wn::WrappedNormal, x::VecOrMat{<: Real})
     x .= cmod(_rand!(rng, wn.𝛷, x))
     return x
@@ -111,6 +115,7 @@ function _logpdf(wn::WrappedNormal, x::AbstractVector{<: Real})
     return logsumexp(logpdf(wn.𝛷, cmod.(x) .+ wn.𝕃))
 end
 
+#optimized
 function _logpdf!(r::AbstractArray{<: Real},
                   wn::WrappedNormal, X::AbstractMatrix{<: Real})
     shifted_X = cmod.(X)
@@ -129,6 +134,7 @@ function _logpdf!(r::AbstractArray{<: Real},
     copy(r)
 end
 
+# This gives lower numerical errors but allocates much more memory
 function _accuratelogpdf!(r::AbstractArray{<: Real},
                           wn::WrappedNormal, X::AbstractMatrix{<: Real})
     d = size(X, 1); n = size(X, 2); m = size(wn.𝕃, 2)
@@ -141,6 +147,8 @@ end
 
 # Mean of WN over 𝕋ᵈ
 mean(wn::WrappedNormal) = mean(wn.𝛷)
+
+Bijectors.bijector(wn::WrappedNormal) = Bijectors.Logit{1, Real}(-π, π)
 
 
 # __________________________________________________________________________________________
@@ -158,3 +166,19 @@ function plotlattice(wn::WrappedNormal)
     @assert length(wn) <= 3
     scatter(eachrow(wn.𝕃)...,size=(400,400), title="WN Lattice", label="")
 end
+
+
+# multiple inits
+# function _WrappedNormals(μ::VecOrMat{<:Real}, Σ::AbstractMatrix{<: Real})
+#     res = []
+#     𝛷 = MvNormal(zeros(size(μ, 1)), Σ)
+#     R = 10.0
+#     r = ceil(Int, R * 1.5)
+#     𝕃 = discrete_ellipsoid(𝛷, r, R)
+#     for i ∈ axes(μ, 2)
+#         @views 𝛷_i = 𝛷 + μ[:, i]
+#         wn = WrappedNormal{eltype(𝛷_i), typeof(𝛷_i.Σ), typeof(mean(𝛷_i))}(𝛷_i, 𝕃)
+#         push!(res, wn)
+#     end
+#     res
+# end
