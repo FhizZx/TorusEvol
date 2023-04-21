@@ -4,6 +4,7 @@ using LogExpFunctions, LinearAlgebra
 using Plots
 using DistributionsAD
 using Bijectors
+using Statistics
 
 import Base: length, eltype, show, size
 import Distributions: _logpdf, _logpdf!, mean, _rand!
@@ -147,6 +148,8 @@ end
 
 # Mean of WN over 𝕋ᵈ
 mean(wn::WrappedNormal) = mean(wn.𝛷)
+
+Statistics.cov(wn::WrappedNormal) = Statistics.cov(wn.𝛷)
 
 Bijectors.bijector(wn::WrappedNormal) = Bijectors.Logit{1, Real}(-π, π)
 
