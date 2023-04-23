@@ -1,10 +1,11 @@
 using Distributions
 using ExponentialAction
+using Memoization
 
 # ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 # Continuous Time Markov Chain (time-reversible with discrete state)
-struct CTMC <: AbstractProcess{MyCategorical}
-    statdist::MyCategorical    # stationary distribution
+struct CTMC <: AbstractProcess{Categorical}
+    statdist::Categorical      # stationary distribution
     Q::AbstractMatrix{<:Real}  # rate matrix
     _I::AbstractMatrix{<:Real} # identity used to compute exp action
 end
@@ -25,9 +26,9 @@ end
 
 # Create a matrix r[i, j] = ℙ[Xᵢ, Yⱼ | process p]
 # which gives the joint probability of points Xᵢ and Yⱼ under process p
-function jointlogpdf!(r::AbstractMatrix{<:Real}, p::CTMC, t::Real,
-                      X::AbstractVecOrMat{<:Real},
-                      Y::AbstractVecOrMat{<:Real}) where D <: Distribution
+function jointlogpdf!(r::AbstractMatrix{<:Real}, c::CTMC, t::Real,
+                      X::AbstractVector,
+                      Y::AbstractVector)
     r .= jointlp(c, t)[X, Y]
     return r
 end
@@ -37,13 +38,11 @@ end
 statdist(c::CTMC) = c.statdist
 
 function jointlp(c::CTMC, t::Real)
-    P = transmat(c::CTMC, t::Real)
-    return log.(P) .+ statdist(c)
-end
-
-function transdist(c::CTMC, t::Real, x₀::Real)
     P = transmat(c, t)
-    return MyCategorical(P[round(Integer, x₀), :]')
+    return log.(P) .+ logpdf(statdist(c))
 end
 
-transdist(c::CTMC, t::Real, x₀::AbstractVector{<:Real}) = transdist(c, t, x₀[1])
+function transdist(c::CTMC, t::Real, x₀)
+    P = transmat(c, t)
+    return Categorical(P[x₀, :])
+end

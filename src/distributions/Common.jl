@@ -21,3 +21,13 @@ function plotsamples(d::ContinuousDistribution, n_samples)
     scatter(eachrow(samples)...,size=(400,400),
             title="Samples", label="", alpha=0.3)
 end
+
+# Fix for categorical logpdf
+Distributions.logpdf(d::Categorical, x::AbstractArray{<:Real}) = logpdf.(d, x)
+
+Distributions.logpdf(d::Categorical) = log.(probs(d))
+
+function Distributions.logpdf!(r::AbstractArray{<:Real}, d::Categorical, x::AbstractArray{<:Real})
+    r .= logpdf(d, x)
+    return r
+end

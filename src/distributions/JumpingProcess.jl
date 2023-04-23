@@ -4,7 +4,7 @@ using Memoization
 
 # ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 # Jumping process - returns to stationary distribution with some rate γ
-struct JumpingProcess{D <: ContinuousMultivariateDistribution,
+struct JumpingProcess{D <: Distribution,
                       RawProc <: AbstractProcess{D}
                       } <: AbstractProcess{D}
     p::RawProc         # original process
@@ -58,7 +58,7 @@ end
     return r
 end
 
-struct JumpingProcessNode <: ContinuousMultivariateDistribution
+struct JumpingProcessNode <: Distribution
     statdist
     raw_transdist
     jump_prob :: Real # probability of jumping to the stationary distribution

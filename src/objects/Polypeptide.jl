@@ -2,16 +2,18 @@ using BioSequences
 using BioStructures
 using Bio3DView
 
-aminoacids = "ARNDCQEGHILKMFPSTWYV-"
-id_to_aa(i) = aminoacids[round(Int, i)]
+aminoacids = "ARNDCQEGHILKMFPSTWYV"
+id_to_aa(i) = aminoacids[i]
+num_aa = length(aminoacids)
 
-aminoacid_ids = Dict((aminoacids[i], Float64(i)) for i ∈ eachindex(aminoacids))
+aminoacid_ids = Dict((aminoacids[i], i) for i ∈ eachindex(aminoacids))
 aa_to_id(a) = aminoacid_ids[a]
 
 # Methods to extract internal coordinates data from BioStructures.Chain object
 sequence(chain::Chain) = aa_to_id.(collect(string(LongAA(chain, standardselector))))
 phi_angles(chain::Chain) = phiangles(chain, standardselector)
 psi_angles(chain::Chain) = psiangles(chain, standardselector)
+ramachandran_angles(chain::Chain) = hcat(phi_angles(chain), psi_angles(chain))
 omega_angles(chain::Chain) = omegaangles(chain, standardselector)
 calpha_coords(chain::Chain) = coordarray(chain, calphaselector)
 
@@ -21,28 +23,23 @@ calpha_coords(chain::Chain) = coordarray(chain, calphaselector)
 # Each column of data represents the internal coordinates of a residue
 # The data in each row is specific by row_names
 struct Polypeptide
-    data::AbstractMatrix{<:Real}
+    data::ObservedData
     row_names::AbstractVector{String}
     chain::BioStructures.Chain
 end
 
 # Construct Polypeptide from BioStructures.Chain
-function Polypeptide(chain::Chain; primary=true,
-                     phi=true, psi=true, omega=false,
-                     cartesian=false)
-    rows = []
+function Polypeptide(chain::Chain; primary=true, ramachandran=true,
+                     omega=false, cartesian=false)
+    feats = []
     row_names = []
 
-    primary && (push!(rows, sequence(chain)); push!(row_names, "aminoacid"))
-    phi && (push!(rows, phi_angles(chain)); push!(row_names, "ϕ angle"))
-    psi && (push!(rows, psi_angles(chain)); push!(row_names, "ψ angle"))
-    omega && (push!(rows, omega_angles(chain)); push!(row_names, "ω angle"))
-    cartesian && (push!(rows, calpha_coords(chain)); push!(row_names, "Cα x coord");
-                  push!(row_names, "Cα y coord"); push!(row_names, "Cα z coord"))
+    primary && (push!(feats, sequence(chain)); push!(row_names, "aminoacid"))
+    ramachadran && (push!(feats, ramachandran_angles(chain)); push!(row_names, "ϕ, ψ angles"))
+    omega && (push!(feats, omega_angles(chain)); push!(row_names, "ω angle"))
+    cartesian && (push!(feats, calpha_coords(chain)); push!(row_names, "Cα coords"))
 
-    data = hcat(rows...)'
-
-    return Polypeptide(data, row_names, chain)
+    return Polypeptide(feats, row_names, chain)
 end
 
 function from_pdb(id::String, chain_id::String)
@@ -52,8 +49,8 @@ function from_pdb(id::String, chain_id::String)
 end
 
 Base.length(p::Polypeptide) = length(p.data)
-num_residues(p::Polypeptide) = size(p.data, 2)
-num_coords(p::Polypeptide) = size(p.data, 1)
+num_sites(p::Polypeptide) = num_sites(p.data)
+num_coords(p::Polypeptide) = num_coords(p.data)
 data(p::Polypeptide) = p.data
 chain(p::Polypeptide) = p.chain
 

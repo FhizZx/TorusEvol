@@ -1,9 +1,28 @@
-START=1
-MATCH=2
-DELETE=3
-INSERT=4
-END=5
-NUM_ALIGN_STATES = 5
+using Memoization
+
+const START=1
+struct TKF92
+    num_descendants::Integer
+    t::Real
+    λ::Real
+    μ::Real
+    r::Real
+    trans_mat::AbstractMatrix{<:Real}
+    end_transitions::AbstractVector{<:Real}
+    dominos::AbstractMatrix{Integer}
+end
+
+trans_mat(model::TKF92) = model.trans_mat
+end_transitions(model::TKF92) = model.end_transitions
+ancestor_extension_prob(model::TKF92) = model.r
+
+# Includes start node but not end node
+num_states(model::TKF92) = size(model(trans_mat), 1)
+states(model::TKF92) = 1:num_states(model)
+domino(model::TKF92, state::Integer) = model.dominos[:, state]
+
+
+
 
 function TKF92TransitionMatrix(λ::Real, μ::Real, r::Real, t::Real; unitinserts::Bool=false)
     ltransMat = Array{Real}(undef, NUM_ALIGN_STATES, NUM_ALIGN_STATES)
