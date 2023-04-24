@@ -7,17 +7,72 @@ struct TKF92
     λ::Real
     μ::Real
     r::Real
-    trans_mat::AbstractMatrix{<:Real}
+    A::AbstractMatrix{<:Real}
     end_transitions::AbstractVector{<:Real}
     dominos::AbstractMatrix{Integer}
 end
 
-trans_mat(model::TKF92) = model.trans_mat
+function TKF92(ts::AbstractVector{<:Real}, λ::Real, μ::Real, r::Real)
+    D = length(ts)
+
+    # log ℙ[link survives for time tᵢ]
+    lαs = lα.(ts)
+    # log ℙ[link dies by time tᵢ]
+    nlαs = log1mexp.(lαs)
+
+    # log ℙ[surviving link gives at least one birth in time tᵢ]
+    lβs = lβ.(ts)
+    # log ℙ[surviving link give no birth in time tᵢ]
+    nlβs = log1mexp.(lβs)
+
+    # log ℙ[dying link gives at least one birth in time tᵢ]
+    lγs = lγ.(ts)
+    # log ℙ[dying link gives no birth in time tᵢ]
+    nlγs = log1mexp.(lγs)
+
+    # Elongation log probability
+    lcont = log(λ) - log(μ)
+    # END log probability
+    lend = log1mexp(lcont)
+
+    scenarios = digits.(2^D:(2^(D+1)-1), base=2); pop!.(scenarios)
+
+    lpscenarios = Array{Real}(undef, length(scenarios))
+    for i ∈ eachindex(scenarios)
+        @views flags = scenarios[i]
+        lpscenarios[i] = sum(ifelse.(flags .== 1, lαs, nlαs))
+
+    for i ∈ eachindex(scenarios)
+        @views flags = scenarios[i]
+        # Birth probabilities in specific scenario
+        @. inslps = ifelse(flags == 1, lβs, lγs)
+        @. noinslps = ifelse(flags == 1, nlβs, nlγs)
+
+        lps = push!(inslps, lend)
+        nlps = push!(noinslps, lcont)
+        run_states =
+
+        A[id.(run_states), id.(run_states)] .= lp_ij .+ nlps'
+
+        A[id.(run_states), ] .= A[id.(run_states), id(end)] .- lend .+ lcont  .+ A[]
+
+    # Start transitions
+    A[start, ] .= A[all, ]
+
+    # Elongation probabilities
+    # Ancestor states
+
+    # Descendant states
+    logaddexp(lr, log1mexp(lr) + lpbi)
+
+end
+
+transmat(model::TKF92) = model.A
 end_transitions(model::TKF92) = model.end_transitions
-ancestor_extension_prob(model::TKF92) = model.r
+# ancestor_extension_prob(model::TKF92) = model.r + p[back to myself]
 
 # Includes start node but not end node
-num_states(model::TKF92) = size(model(trans_mat), 1)
+num_states(model::TKF92) = size(transmat(model), 1)
 states(model::TKF92) = 1:num_states(model)
 domino(model::TKF92, state::Integer) = model.dominos[:, state]
 
