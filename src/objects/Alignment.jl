@@ -2,13 +2,13 @@ using Base
 
 
 
-struct Alignment <: AbstractVector{BitVector}
-    ids :: Vector[Int]
-    row_indices :: Dict{Int, Int}
-    data :: BitMatrix
+struct Alignment <: AbstractVector{AbstractVector{<:Integer}}
+    ids :: AbstractVector{Integer}
+    row_indices :: Dict{Integer, Integer}
+    data :: AbstractMatrix{Integer}
 end
 
-function Alignment(ids::Vector[Int], data::BitMatrix)
+function Alignment(ids::Vector[Int], data::AbstractMatrix{<:Integer})
     row_indices = Dict([(ids[i],i) for i ∈ eachindex(ids)])
     # remove null columns
     nonzero_cols = (!).(iszero.(eachcol(data)))
