@@ -46,3 +46,30 @@ function transdist(c::CTMC, t::Real, x₀)
     P = transmat(c, t)
     return Categorical(P[x₀, :])
 end
+
+# ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+# CTMC based substitution process
+
+# given some rate matrix Q, we can find the transition matrix P(t)
+# by exponentiating Q
+
+# i.e. P(t) = exp(t * Q)
+
+# p(i, j) = π(i) * P(t)[i, j]
+
+# p(i, _) = π(i)
+
+# so the substitution model should implement likelihood Methods
+# for i -> j as well as equilibrium frequencies
+
+# Q = S diag(Π) where S is symmetric exchangeability matrix,
+#        Π is equilibrium frequencies
+
+function SubstitutionProcess(S::LowerTriangular, Π::AbstractVector)
+    S = Symmetric(S, :L)
+    S[diagind(S)] .= 0.0
+    Q = S * Diagonal(Π)
+    Q[diagind(Q)] .= sum(-Q, dims = 2)
+    #TODO normalize rate of replacement so that the mean is 1
+    return CTMC(Π, Q)
+end
