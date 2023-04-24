@@ -10,7 +10,7 @@ function gen_scenarios(D::Integer)
     scenarios = digits.(2^D:(2^(D+1)-1), base=2); pop!.(scenarios)
     return scenarios
 end
-gen_start_state(D::Integer) = [ones(D+1);zeros(D)]
+gen_start_state(D::Integer) = [zeros(D+1);ones(D)]
 gen_end_state(D::Integer) = zeros(2*D+1)
 
 gen_ancestor_state(values) = [1; values; values]
@@ -43,6 +43,7 @@ end
 const MAX_NUM_DESCENDANTS = 5
 const align_states = [gen_align_states(D) for D ∈ 1:MAX_NUM_DESCENDANTS]
 @views const align_state_values = [[v[1:(D+1)] for v ∈ align_states[D]] for D ∈ 1:MAX_NUM_DESCENDANTS]
+@views const align_state_desc_values = [[v[2:(D+1)] for v ∈ align_states[D]] for D ∈ 1:MAX_NUM_DESCENDANTS]
 @views const align_state_flags = [[v[(D+2):(2*D+1)] for v ∈ align_states[D]] for D ∈ 1:MAX_NUM_DESCENDANTS]
 const align_state_ids = [Dict((s[i], i) for i ∈ eachindex(s)) for s ∈ align_states]
 const descendant_state_ids = [gen_descendant_state_ids(D) for D ∈ 1:MAX_NUM_DESCENDANTS]
@@ -208,6 +209,7 @@ end
 
 transmat(model::TKF92) = model.A
 
+
 # Return the id of the state corresponding to the ancestor state for which
 # no descendants survive
 no_survivors_ancestor_id(model::TKF92) = align_state_ids[model.D][gen_ancestor_state(zeros(D))]
@@ -216,3 +218,4 @@ num_descendants(model::TKF92) = model.D
 state_ids(model::TKF92) = align_state_ids[model.D]
 states(model::TKF92) = align_states[model.D]
 values(model::TKF92) = align_state_values[model.D]
+descendant_values(model::TKF92) = align_state_desc_values[model.D]
