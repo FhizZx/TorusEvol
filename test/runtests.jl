@@ -3,10 +3,12 @@ using TorusEvol
 using Test
 using Random
 
+const TEST_SEED = 123456
 printstyled("Running tests:\n", color=:blue)
-Random.seed!(345679)
 
-const tests = ["distributions/WrappedNormal"]
+const all_tests = ["distributions/WrappedNormal", "models/TKF92", "distributions/EvolHMM"]
+
+tests = ["distributions/EvolHMM"]
 
 @testset "TorusEvol" begin
     @testset "Test $t" for t in tests

@@ -59,16 +59,15 @@ end
 # Constructor for 2-dimensional drift
 # σ -- variance coefficient of each angle
 # α -- drift coefficient for each angle, as well as their drift covariance
-function WrappedDiffusion(μ::AbstractVector{<:Real},
+function WrappedDiffusion(μ_𝜙::Real, μ_𝜓::Real,
                           σ_𝜙::Real, σ_𝜓::Real,
                           α_𝜙::Real, α_𝜓::Real, α_cov::Real)
-    @assert length(μ) == 2
     @assert (α_𝜙 * α_𝜓 > (α_cov^2)) string(α_𝜙) * " " * string(α_𝜓)* " " * string(α_cov)
     @assert σ_𝜙 * σ_𝜓 > 0
 
     Σ = PDiagMat([σ_𝜙^2, σ_𝜓^2])
     Α = [α_𝜙 (σ_𝜙*α_cov/σ_𝜓); (σ_𝜓*α_cov/σ_𝜙) α_𝜓]
-    WrappedDiffusion(μ, Σ, Α)
+    WrappedDiffusion([μ_𝜙, μ_𝜓], Σ, Α)
 end
 
 # __________________________________________________________________________________________

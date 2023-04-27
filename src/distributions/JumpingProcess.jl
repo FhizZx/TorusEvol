@@ -58,7 +58,7 @@ end
     return r
 end
 
-struct JumpingProcessNode <: Distribution
+struct JumpingProcessNode <: ContinuousMultivariateDistribution
     statdist
     raw_transdist
     jump_prob :: Real # probability of jumping to the stationary distribution

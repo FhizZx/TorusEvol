@@ -6,7 +6,7 @@ import Base: length, eltype, show, size
 import Distributions: _logpdf, _logpdf!, mean, _rand!
 
 export
-
+    # objects/Polypeptide
     Polypeptide,
     from_pdb,
     num_residues,
@@ -16,14 +16,97 @@ export
     render,
     render_aligned,
 
+    # objects/Data
+    ObservedData,
+    num_sites,
+    num_coords,
+    num_regimes,
+
+    # models/TKF92
+    TKF92,
+    MAX_NUM_DESCENDANTS,
+    transmat,
+    num_descendants,
+    state_ids,
+    states,
+    num_states,
+    values,
+    descendant_values,
+
+    # models/WAG
+    WAG_S,
+    WAG_Π,
+    WAG_SubstitutionProcess,
+
+    # distributions/AbstractProcess
+    AbstractProcess,
+    statdist,
+    transdist,
+    transdist!,
+    jointlogpdf!,
+    statlogpdf!,
+    fulllogpdf!,
+    randjoint,
+    randdist,
+
+    # distributions/WrappedNormal
     WrappedNormal,
     cmod,
     unwrapped,
-    lattice
+    lattice,
+
+    # distributions/WrappedDiffusion
+    WrappedDiffusion,
+    WrappedDiffusionNode,
+
+    # distributions/JumpingProcess
+    JumpingProcess,
+    JumpingProcessNode,
+    rate,
+    raw_process,
+    jumping,
+
+    # distributions/CTMC.jl
+    CTMC,
+    SubstitutionProcess,
+    jointlp,
+
+    # distributions/MixtureProductProcess.jl
+    MixtureProductProcess,
+    weights,
+    processes,
+
+    # distributions/EvolHMM.jl
+    PairDataHMM,
+    forward!
 
 
-include("distributions/WrappedNormal.jl")
+
+# Objects
+#include("objects/Alignment.jl")
+include("objects/Data.jl")
 include("objects/Polypeptide.jl")
+
+# Models
+include("models/TKF92.jl")
+
+
+# Distributions
+include("distributions/AbstractProcess.jl")
+include("distributions/Common.jl")
+include("distributions/WrappedNormal.jl")
+include("distributions/WrappedDiffusion.jl")
+include("distributions/JumpingProcess.jl")
+include("distributions/CTMC.jl")
+include("models/WAG.jl")
+include("distributions/MixtureProductProcess.jl")
+include("distributions/EvolHMM.jl")
+
+
+
+
+
+
 
 TorusEvol
 

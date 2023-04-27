@@ -29,8 +29,8 @@ twoπ_hyper_cube(r::Integer, d::Integer) =
 function discrete_ellipsoid(𝛷::MvNormal, r::Real, R::Real)
     d = length(𝛷)
     cube = twoπ_hyper_cube(r, d)
-    mindist = 2 * sqmahal(𝛷, zeros(d))
-    ellipsoid = cube[:, sqmahal(𝛷, cube) .< max(R*R, mindist)]
+    mindist = 3 * sqmahal(𝛷, zeros(d))
+    ellipsoid = cube[:, sqrt(sqmahal(𝛷, cube)) .< max(R, mindist)]
     ellipsoid
 end
 
@@ -60,9 +60,10 @@ end
 # 𝕃 = 2π[-r,r]ᵈ ∩ B(𝛷, R) (in sqmahal distance)
 function WrappedNormal(μ::AbstractVector{T}, Σ::AbstractPDMat{T}) where T <: Real
     𝛷 = MvNormal(cmod(μ), Σ)
-    R = 5.0
+    R = 10.0
     r = ceil(Int, R * 1.5)
-    𝕃 = discrete_ellipsoid(𝛷, r, R)
+    #𝕃 = discrete_ellipsoid(𝛷, r, R)
+    𝕃 = twoπ_hyper_cube(1, length(μ))
     WrappedNormal(𝛷, 𝕃)
 end
 

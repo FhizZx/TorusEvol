@@ -1,14 +1,13 @@
 using Base
 
 
-
 struct Alignment <: AbstractVector{AbstractVector{<:Integer}}
     ids :: AbstractVector{Integer}
     row_indices :: Dict{Integer, Integer}
     data :: AbstractMatrix{Integer}
 end
 
-function Alignment(ids::Vector[Int], data::AbstractMatrix{<:Integer})
+function Alignment(ids::Vector{<:Integer}, data::AbstractMatrix{<:Integer})
     row_indices = Dict([(ids[i],i) for i ∈ eachindex(ids)])
     # remove null columns
     nonzero_cols = (!).(iszero.(eachcol(data)))
@@ -40,7 +39,6 @@ function combine(parent_id::Int, a1::Alignment, a2::Alignment) :: Alignment
     # Which columns in each alignment contain the parent residue
     contains1 = data(a1)[row_index(a1, parent_id), :]
     contains2 = data(a2)[row_index(a2, parent_id), :]
-
     @assert count(contains1) == count(contains2) "Length of parent in alignments to be combined is not consistent"
     # Number of residues of parent sequence
     parent_length = count(contains1)

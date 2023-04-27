@@ -1,46 +1,13 @@
 using LogExpFunctions
 using Distributions
 
-@testset "TKF92 one descendant tests" begin
-    λ = rand(Exponential(1.0))
-    seq_length = rand(Exponential(0.01))
-    μ = (seq_length+1) * λ
-    r = rand(Uniform(0,1))
-    t = rand(Exponential(1.0))
-
-
-
-    model = TKF92([t], λ, μ, r)
-    new_trans_mat = transmat(model)
-    # scenarios = [[0], [1]]
-    # states: 1END, 2START,
-    # 3DELETE: 1desc(0)flag(0),
-    # 4MATCH: 1desc(1)flag(1)
-    # 5,6INSERTS: 0desc(1)flag(0), 0desc(1)flag(1)
-
-    # need to sum up the probabilities of the 2 inserts,
-    # since the states coincide in the old transmat
-    my_mat = new_trans_mat[1:5, 1:5]
-    my_mat[1:4, 5] .= logaddexp.(new_trans_mat[1:4, 5], new_trans_mat[1:4, 6])
-    my_mat[5, 1:4] .= logaddexp.(new_trans_mat[5, 1:4], new_trans_mat[6, 1:4])
-    my_mat[5, 5] = logsumexp(new_trans_mat[5:6, 5:6])
-
-    old_mat = gen_pair_tkf92_transmat(t, λ, μ, r)
-
-    @test my_mat ≈ old_mat atol=1e-7
-
-    # Check that exp.(my_mat) is a transition probability matrix
-    @test all(logsumexp(my_mat; dims=1) .≈ 0)
-
-    #todo test edge cases for hyper parameter values (e.g. what happens when t is small, large)
-end
-
 # For correctness checks
 #beta(λ, μ, t) = (1 - exp((λ - μ) * t)) / (μ - λ*exp((λ - μ) * t))
 logμβ(λ, μ, t) = log1mexp((λ - μ) * t) - log1mexp((log(λ) - log(μ)) + (λ - μ) * t)
-function gen_pair_tkf92_transmat(t::Real, λ::Real, μ::Real, r::Real)
+function gen_pair_tkf92_transmat(t::Real, λ::Real, μ::Real, r::Real;
+                                 unitinserts=false)
     END=1; START=2; DELETE=3; MATCH=4; INSERT=5
-    ltransMat = Array{Real}(undef, NUM_ALIGN_STATES, NUM_ALIGN_STATES)
+    ltransMat = Array{Real}(undef, 5, 5)
     ltransMat = fill!(ltransMat, -Inf)
 
     # log(μ*β(t))
@@ -103,14 +70,70 @@ function gen_pair_tkf92_transmat(t::Real, λ::Real, μ::Real, r::Real)
     ltransMat[INSERT, END] = lpie + lpeE
 
     ltransMat[MATCH, INSERT] = lpmb + lpbi
-    ltransMat[MATCH, MATCH] = lpmm + lpmb + lpbe + lpef + lpfm
+    ltransMat[MATCH, MATCH] = logaddexp(lpmm, lpmb + lpbe + lpef + lpfm)
     ltransMat[MATCH, DELETE] = lpmb + lpbe + lpef + lpfd
     ltransMat[MATCH, END] = lpmb + lpbe + lpeE
 
     ltransMat[DELETE, INSERT] = lpdg + lpgi
     ltransMat[DELETE, MATCH] = lpdg + lpge + lpef + lpfm
-    ltransMat[DELETE, DELETE] = lpdd + lpdg + lpge + lpef + lpfd
+    ltransMat[DELETE, DELETE] = logaddexp(lpdd, lpdg + lpge + lpef + lpfd)
     ltransMat[DELETE, END] = lpdg + lpge + lpeE
 
-    return ltransMat, pii
+    #@views ltransMat[2:end, :] .-= logsumexp(ltransMat[2:end, :]; dims=2)
+    return ltransMat
+end
+
+const NUM_TKF92_TESTS = 30
+@testset "TKF92 tests" begin
+
+    @testset "TKF92 one descendant test $v" for v ∈ 1:NUM_TKF92_TESTS
+        Random.seed!(TEST_SEED+v)
+        λ = rand(Exponential(1.0))
+        seq_length = rand(Exponential(0.01))
+        μ = (seq_length+1) * λ
+        r = rand(Uniform(0,1))
+        t = rand(Exponential(1.0))
+
+        # @info "λ: $λ, μ: $μ, r: $r, t: $t"
+
+        model = TKF92([t], λ, μ, r)
+        new_trans_mat = transmat(model)
+        # scenarios = [[0], [1]]
+        # states: 1END, 2START,
+        # 3DELETE: 1desc(0)flag(0),
+        # 4MATCH: 1desc(1)flag(1)
+        # 5,6INSERTS: 0desc(1)flag(0), 0desc(1)flag(1)
+
+        # need to sum up the probabilities of the 2 inserts,
+        # since the states coincide in the old transmat
+        my_mat = new_trans_mat[1:5, 1:5]
+        my_mat[1:4, 5] .= logaddexp.(new_trans_mat[1:4, 5], new_trans_mat[1:4, 6])
+
+        old_mat = gen_pair_tkf92_transmat(t, λ, μ, r)
+
+
+        @test my_mat ≈ old_mat atol=1e-7
+
+        # Check that exp.(my_mat) is a transition probability matrix
+        @test logsumexp(new_trans_mat[2:end,:]; dims=2) ≈ zeros(size(new_trans_mat, 1)-1) atol=1e-7
+
+        #todo test edge cases for hyper parameter values (e.g. what happens when t is small, large)
+    end
+
+    @testset "TKF92 D>1 descendants test $v" for v ∈ 1:NUM_TKF92_TESTS
+        Random.seed!(TEST_SEED+v)
+        D = rand(Categorical(MAX_NUM_DESCENDANTS-1))+1
+        λ = rand(Exponential(1.0))
+        seq_length = rand(Exponential(0.01))
+        μ = (seq_length+1) * λ
+        r = rand(Uniform(0,1))
+        ts = rand(Exponential(1.0), D)
+
+        # @info "D: $D, λ: $λ, μ: $μ, r: $r, ts: $ts"
+        model = TKF92(ts, λ, μ, r)
+        new_trans_mat = transmat(model)
+
+        # Check that exp.(new_trans_mat) is a transition probability matrix
+        @test logsumexp(new_trans_mat[2:end,:]; dims=2) ≈ zeros(size(new_trans_mat, 1)-1) atol=1e-7
+    end
 end

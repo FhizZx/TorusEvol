@@ -27,10 +27,16 @@ end
 # Create a matrix r[i, j] = ℙ[Xᵢ, Yⱼ | process p]
 # which gives the joint probability of points Xᵢ and Yⱼ under process p
 function jointlogpdf!(r::AbstractMatrix{<:Real}, c::CTMC, t::Real,
-                      X::AbstractVector,
-                      Y::AbstractVector)
-    r .= jointlp(c, t)[X, Y]
+                      X::AbstractVecOrMat,
+                      Y::AbstractVecOrMat)
+    @views r .= jointlp(c, t)[vec(X), vec(Y)]
     return r
+end
+
+function statlogpdf!(r::AbstractVector{<:Real}, c::CTMC,
+                     X::AbstractVecOrMat)
+    # need to take transpose to make X vector so that it works with Categorical
+    logpdf!(r, statdist(c), X')
 end
 
 @memoize transmat(c::CTMC, t::Real) = expv(t, c.Q, c._I)
