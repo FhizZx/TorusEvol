@@ -231,8 +231,10 @@ transmat(model::TKF92) = model.A
 no_survivors_ancestor_id(model::TKF92) = align_state_ids[model.D][gen_ancestor_state(zeros(D))]
 
 num_descendants(model::TKF92) = model.D
-state_ids(model::TKF92) = align_state_ids[model.D]
+state_ids_dict(model::TKF92) = align_state_ids[model.D]
+state_ids(model::TKF92) = 1:num_states(model)
+proper_state_ids(model::TKF92) = @views state_ids(model)[3:end]
 states(model::TKF92) = align_states[model.D]
 num_states(model::TKF92) = length(align_states[model.D])
-values(model::TKF92) = align_state_values[model.D]
+state_values(model::TKF92) = align_state_values[model.D]
 descendant_values(model::TKF92) = align_state_desc_values[model.D]

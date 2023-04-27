@@ -27,10 +27,11 @@ export
     MAX_NUM_DESCENDANTS,
     transmat,
     num_descendants,
+    proper_state_ids,
     state_ids,
     states,
     num_states,
-    values,
+    state_values,
     descendant_values,
 
     # models/WAG
@@ -47,7 +48,7 @@ export
     statlogpdf!,
     fulllogpdf!,
     randjoint,
-    randdist,
+    randstat,
 
     # distributions/WrappedNormal
     WrappedNormal,

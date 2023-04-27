@@ -8,11 +8,10 @@ using Memoization
 struct MixtureProductProcess
     weights::AbstractVector{<:Real}
     processes::AbstractMatrix{<:AbstractProcess}
-end
-
-function MixtureProductProcess(weights, processes)
-    @assert length(weights) == size(processes, 2) "The number of regimes is not consistent"
-    return MixtureProductProcess(weights, processes)
+    function MixtureProductProcess(weights, processes)
+        @assert length(weights) == size(processes, 2) "The number of regimes is not consistent"
+        new(weights, processes)
+    end
 end
 
 weights(m::MixtureProductProcess) = m.weights
@@ -89,20 +88,24 @@ function randstat(m::MixtureProductProcess, N::Integer)
     sites = rand(Categorical(weights(m)), N)
     dists = statdist.(processes(m)[:, sites])
     C = num_coords(m)
-    featsX = []
+    featsX = Vector{AbstractArray{Real}}(undef, 0)
     for c ∈ 1:C
-        @views x = rand.(dists[c, 1:N])
+        d = length(processes(m)[c, 1])
+        x = Array{eltype(processes(m)[c, 1])}(undef, d, N)
+        for n ∈ 1:N
+            x[:, n] .= rand(dists[c, n])
+        end
         push!(featsX, x)
     end
-    return ObservedData(featsX...)
+    return ObservedData(featsX)
 end
 
 function randjoint(m::MixtureProductProcess, t::Real, N::Integer)
     sites = rand(Categorical(weights(m)), N)
     procs = processes(m)[:, sites]
     C = num_coords(m)
-    featsX = []
-    featsY = []
+    featsX = Vector{AbstractArray{Real}}(undef, 0)
+    featsY = Vector{AbstractArray{Real}}(undef, 0)
     for c ∈ 1:C
         d = length(processes(m)[c, 1])
         x = Array{eltype(processes(m)[c, 1])}(undef, d, N); y = similar(x)

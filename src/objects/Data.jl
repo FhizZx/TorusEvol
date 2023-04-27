@@ -7,9 +7,9 @@ struct ObservedData
     N::Integer
 end
 
-function ObservedData(data)
+function ObservedData(data::AbstractVector{AbstractArray{Real}})
     N = size(data[1], 2)
-    @assert all(N .== size.(data, Ref(2))) "Dimensions of feature vectors don't match"
+    @assert all(N .== size.(data, Ref(2))) "Dimensions of feature vectors don't match: " *string(size.(data, Ref(2)))
     return ObservedData(data, N)
 end
 

@@ -12,7 +12,7 @@ struct PairDataHMM <: ContinuousMatrixDistribution
 end
 
 function PairDataHMM(model::TKF92, N_X::Integer, N_Y::Integer)
-    α = Array{Real}(undef, num_states(model), N_X + 1, N_Y + 1)
+    α = Array{Real}(undef, N_X + 1, N_Y + 1, num_states(model))
     return PairDataHMM(model, α, N_X, N_Y)
 end
 
@@ -36,27 +36,28 @@ function forward!(α::AbstractArray{<:Real}, model::TKF92,
 
     α = fill!(α, -Inf)
     # Initial state
-    α[START_INDEX, ones(Int, D+1)...] = 0
-    grid = Iterators.product(axes(α)[2:end]...)
-    end_corner = 1 .+ size(α)
+    α[ones(Int, D+1)..., START_INDEX] = 0
+    axs = [a .- 1 for a ∈ axes(emission_lps)]
+    grid = map(collect, collect(Iterators.product(axs...))) # 0:N_X x 0:N_Y
+    end_corner = size(emission_lps) # N_X + 1 by N_Y + 1
 
-    state_ids = state_ids(model)
-    values = known_ancestor ? values(model) : descendant_values(model)
+    #values = known_ancestor ? values(model) : descendant_values(model)
     #A = known_ancestor ? transmat(model) :
-
+    A = transmat(model)
     # Recursion
-    for indices ∈ grid, s ∈ state_ids
-        if all(indices .+ 1 .>= s)
-            state = values[s]
-            @. obs_ind = ifelse(state == 1, indices, end_corner)
-            curr_ind = 1 .+ indices
-            prev_ind = curr_ind .- state
-            @views α[s, curr_ind...] = emission_lps[obs_ind...] +
-                                       logsumexp([A[:, s] .+ α[:, prev_ind...]])
+    for indices ∈ grid, s ∈ proper_state_ids(model)
+        state = state_values(model)[s]
+        curr_αind = 1 .+ indices
+        prev_αind = curr_αind .- state
+        if all(prev_αind .>= 1)
+            obs_ind = @. ifelse(state == 1, indices, end_corner)
+
+            @views α[curr_αind..., s] = emission_lps[obs_ind...] +
+                                        logsumexp(A[:, s] .+ α[prev_αind..., :])
         end
     end
 
-    logp = logsumexp([A[:, END_INDEX] .+ α[:, end_corner]])
+    logp = logsumexp(A[:, END_INDEX] .+ α[end_corner..., :])
 
     return logp
 end

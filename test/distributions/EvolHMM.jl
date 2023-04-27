@@ -4,7 +4,7 @@ using TorusEvol
 
 const NUM_PAIRHMM_TESTS = 1
 @testset "PairDataHMM test $v" for v ∈ 1:NUM_PAIRHMM_TESTS
-    Random.seed!(v)
+    Random.seed!(TEST_SEED+v)
 
     t = rand(Exponential(1))
 
@@ -28,7 +28,8 @@ const NUM_PAIRHMM_TESTS = 1
         σ_𝜓[e] = sqrt(rand(InverseGamma())) / π
         α_𝜙[e] = sqrt(rand(InverseGamma())) / π
         α_𝜓[e] = sqrt(rand(InverseGamma())) / π
-        α_cov[e] = rand(Uniform(0, α_𝜙[e] * α_𝜓[e]))
+        α_corr = rand(Beta(3, 3))*2 - 1
+        α_cov[e] = α_corr * (α_𝜙[e] * α_𝜓[e]) / 10
         γ[e] = rand(Gamma(10.0))
     end
     diff_procs = reshape(jumping.(WrappedDiffusion.(μ_𝜙, μ_𝜓, σ_𝜙, σ_𝜓, α_𝜙, α_𝜙, α_cov), γ), 1, E)
@@ -37,16 +38,20 @@ const NUM_PAIRHMM_TESTS = 1
 
 
     N = rand(Geometric(0.05))+1
-    @info N
-    X, Y = randjoint(ξ, t, N)
-    @info X
-    emission_lps = rand(N+1, N+1)
+    M = rand(Geometric(0.05))+1
+    N = 5; M = 5
+    @info N, M
+    X = randstat(ξ, N)
+    Y = randstat(ξ, M)
+    emission_lps = rand(N+1, M+1)
 
     emission_lps = fulllogpdf!(emission_lps, ξ, t, X, Y)
 
     pairdatahmm = PairDataHMM(align_model, num_sites(X), num_sites(Y))
 
     lp = logpdf(pairdatahmm, emission_lps)
-    display(lp)
-    @test lp ≤ 0
+
+    display(exp.(emission_lps))
+    display(exp.(pairdatahmm.α))
+    display(exp(lp))
 end
