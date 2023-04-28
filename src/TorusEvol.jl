@@ -21,6 +21,7 @@ export
     num_sites,
     num_coords,
     num_regimes,
+    slice,
 
     # models/TKF92
     TKF92,
@@ -47,6 +48,7 @@ export
     jointlogpdf!,
     statlogpdf!,
     fulllogpdf!,
+    fulllogpdf,
     randjoint,
     randstat,
 

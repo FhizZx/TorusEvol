@@ -238,3 +238,11 @@ states(model::TKF92) = align_states[model.D]
 num_states(model::TKF92) = length(align_states[model.D])
 state_values(model::TKF92) = align_state_values[model.D]
 descendant_values(model::TKF92) = align_state_desc_values[model.D]
+
+show(io::IO, model::TKF92) = print(io, "TKF92(" *
+                                  "\nnum descendants: " * string(num_descendants(model)) *
+                                  "\nts: " * string(model.ts) *
+                                  "\nλ: " * string(model.λ) *
+                                  "\nμ: " * string(model.μ) *
+                                  "\nr: " * string(model.r) *
+                                  "\n)")

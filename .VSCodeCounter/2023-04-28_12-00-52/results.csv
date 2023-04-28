@@ -1,0 +1,34 @@
+"filename", "language", "JSON", "Markdown", "Julia", "comment", "blank", "total"
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\.ipynb_checkpoints\PairEvol-checkpoint.ipynb", "JSON", 3658, 0, 0, 0, 1, 3659
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\AncestorReconstruction.ipynb", "JSON", 0, 0, 0, 0, 1, 1
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\PairEvol.ipynb", "JSON", 3658, 0, 0, 0, 1, 3659
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\ProteinViewer.ipynb", "JSON", 101, 0, 0, 0, 1, 102
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\README.md", "Markdown", 0, 5, 0, 0, 3, 8
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\TriEvol.ipynb", "JSON", 0, 0, 0, 0, 1, 1
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\src\EvolutionSimulator.jl", "Julia", 0, 0, 90, 10, 31, 131
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\src\PairEvol.jl", "Julia", 0, 0, 179, 26, 70, 275
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\src\TorusEvol.jl", "Julia", 0, 0, 73, 133, 50, 256
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\src\distributions\AbstractProcess.jl", "Julia", 0, 0, 45, 18, 15, 78
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\src\distributions\CTMC.jl", "Julia", 0, 0, 51, 19, 22, 92
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\src\distributions\Common.jl", "Julia", 0, 0, 23, 4, 7, 34
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\src\distributions\EvolHMM.jl", "Julia", 0, 0, 42, 10, 12, 64
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\src\distributions\JumpingProcess.jl", "Julia", 0, 0, 90, 12, 22, 124
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\src\distributions\MixtureProductProcess.jl", "Julia", 0, 0, 116, 12, 18, 146
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\src\distributions\RamachandranProcess.jl", "Julia", 0, 0, 14, 2, 3, 19
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\src\distributions\WrappedDiffusion.jl", "Julia", 0, 0, 193, 54, 73, 320
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\src\distributions\WrappedNormal.jl", "Julia", 0, 0, 95, 50, 40, 185
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\src\experiments\DihedralAngleCorrelations.jl", "Julia", 0, 0, 36, 1, 12, 49
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\src\experiments\IndelAngleChanges.jl", "Julia", 0, 0, 84, 2, 14, 100
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\src\models\TKF92.jl", "Julia", 0, 0, 136, 65, 40, 241
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\src\models\WAG.jl", "Julia", 0, 0, 8, 0, 6, 14
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\src\objects\Alignment.jl", "Julia", 0, 0, 55, 10, 22, 87
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\src\objects\Data.jl", "Julia", 0, 0, 20, 13, 9, 42
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\src\objects\Polypeptide.jl", "Julia", 0, 0, 62, 8, 20, 90
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\src\utils\Backbone.jl", "Julia", 0, 0, 136, 13, 30, 179
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\test.ipynb", "JSON", 1251, 0, 0, 0, 1, 1252
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\test\distributions\EvolHMM.jl", "Julia", 0, 0, 44, 0, 14, 58
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\test\distributions\WrappedDiffusion.jl", "Julia", 0, 0, 0, 0, 1, 1
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\test\distributions\WrappedNormal.jl", "Julia", 0, 0, 25, 4, 4, 33
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\test\models\TKF92.jl", "Julia", 0, 0, 76, 38, 26, 140
+"c:\Users\stefa\Dropbox\Jotun Hein - Part C Projects\Manolache\Code\Evolutionary Toroidal Difussions\TorusEvol\test\runtests.jl", "Julia", 0, 0, 12, 1, 5, 18
+"Total", "-", 8668, 5, 1705, 505, 575, 11458

@@ -37,7 +37,7 @@ end
 
     # Add to each column the log transition density from Y to X
     for j ∈ 1:m
-        r[:, j] .= logpdf(transdists[j], X) .+ logpdf(statdist(p), Y[:, j])
+        r[:, j] .= @views logpdf(transdists[j], X) .+ logpdf(statdist(p), Y[:, j])
     end
     return r
 end
@@ -45,7 +45,8 @@ end
 # Create a vector r[i] = lℙ[Xᵢ| process p]
 function statlogpdf!(r::AbstractVector{<:Real}, p::AbstractProcess,
                      X::AbstractVecOrMat)
-    logpdf!(r, statdist(p), X)
+    r .= logpdf!(r, statdist(p), X)
+    return r
 end
 
 # Create a matrix r[i, j]
@@ -59,9 +60,9 @@ end
                               Y::AbstractVecOrMat) where D <: Distribution
     n = size(X, 2)
     m = size(Y, 2)
-    jointlogpdf!(r[1:n, 1:m], p, t, X, Y)
-    statlogpdf!(r[1:n, m+1], p, X)
-    statlogpdf!(r[n+1, 1:m], p, Y)
+    @views jointlogpdf!(r[1:n, 1:m], p, t, X, Y)
+    @views statlogpdf!(r[1:n, m+1], p, X)
+    @views statlogpdf!(r[n+1, 1:m], p, Y)
     return r
 end
 

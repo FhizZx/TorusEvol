@@ -18,7 +18,10 @@ end
 
 size(d::PairDataHMM) = (d.N_X+1, d.N_Y+1)
 
-#function _rand(rng::AbstractRNG, d::PairDataNode, A::AbstractMatrix{<:Real})
+function _rand(rng::AbstractRNG, d::PairDataHMM, A::AbstractMatrix{<:Real})
+    A .= rand(d.N_X+1, d.N_Y+1)
+    return A
+end
 
 # lℙ[X, Y | params]
 function _logpdf(d::PairDataHMM, emission_lps::AbstractMatrix{<:Real})

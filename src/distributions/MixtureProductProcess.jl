@@ -10,6 +10,15 @@ struct MixtureProductProcess
     processes::AbstractMatrix{<:AbstractProcess}
     function MixtureProductProcess(weights, processes)
         @assert length(weights) == size(processes, 2) "The number of regimes is not consistent"
+        C = size(processes, 1)
+        E = size(processes, 2)
+        for c ∈ 1:C
+            l = length(processes[c, 1])
+            #todo check that distributions in a coordinate operate over the same domain
+            for e ∈ 2:E
+                @assert length(processes[c, e]) == l "The processes in each coordinate should have the same length"
+            end
+        end
         new(weights, processes)
     end
 end
@@ -19,12 +28,32 @@ processes(m::MixtureProductProcess) = m.processes
 num_coords(m::MixtureProductProcess) = size(m.processes, 1)
 num_regimes(m::MixtureProductProcess) = size(m.processes, 2)
 
+# function fulllogpdf(p::MixtureProductProcess, t::Real,
+#                     X::ObservedData,
+#                     Y::ObservedData)
+#     r = Matrix{Real}(num_)
+#     fulllogpdf!(r, p, t, X, Y)
+#     return r
+# end
+
 function fulllogpdf!(r::AbstractMatrix{<:Real},
                      p::MixtureProductProcess, t::Real,
                      X::ObservedData,
                      Y::ObservedData)
     n = num_sites(X)
     m = num_sites(Y)
+    @views jointlogpdf!(r[1:n, 1:m], p, t, X, Y)
+    @views statlogpdf!(r[1:n, m+1], p, X)
+    @views statlogpdf!(r[n+1, 1:m], p, Y)
+    return r
+end
+
+function fulllogpdf(p::MixtureProductProcess, t::Real,
+                    X::ObservedData,
+                    Y::ObservedData)
+    n = num_sites(X)
+    m = num_sites(Y)
+    r = zeros(num_sites(X)+1, num_sites(Y)+1)
     @views jointlogpdf!(r[1:n, 1:m], p, t, X, Y)
     @views statlogpdf!(r[1:n, m+1], p, X)
     @views statlogpdf!(r[n+1, 1:m], p, Y)
@@ -45,6 +74,7 @@ function jointlogpdf!(r::AbstractMatrix{<:Real},
 
     # Compute the contribution of each regime to the final logpdf
     r_e = similar(workspace)
+    fill!(r, -Inf)
     for e ∈ 1:E
         w = weights(m)[e]
         r_e .= log(w)
@@ -71,6 +101,7 @@ function statlogpdf!(r::AbstractVector{<:Real},
 
     # Compute the contribution of each regime to the final logpdf
     r_e = similar(r)
+    fill!(r, -Inf)
     for e ∈ 1:E
         w = weights(m)[e]
         r_e .= log(w)
@@ -117,3 +148,10 @@ function randjoint(m::MixtureProductProcess, t::Real, N::Integer)
     end
     return ObservedData(featsX), ObservedData(featsY)
 end
+
+show(io::IO, p::MixtureProductProcess) = print(io, "MixtureProductProcess(" *
+                                                   "\nnum coords: " * string(num_coords(p)) *
+                                                   "\nnum regimes: " * string(num_regimes(p)) *
+                                                   "\nweights: " * string(weights(p)) *
+                                                   "\nprocesses: " * string(processes(p)) *
+                                                   "\n)")

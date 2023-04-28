@@ -33,8 +33,8 @@ end
 # Create a matrix r[i, j] = ℙ[Xᵢ, Yⱼ | process p]
 # which gives the joint probability of points Xᵢ and Yⱼ under process p
 @memoize function jointlogpdf!(r::AbstractMatrix{<:Real}, p::JumpingProcess{D}, t::Real,
-                      X::AbstractVecOrMat{<:Real},
-                      Y::AbstractVecOrMat{<:Real}) where D <: Distribution
+                               X::AbstractVecOrMat{<:Real},
+                               Y::AbstractVecOrMat{<:Real}) where D <: Distribution
     n = size(X, 2)
     m = size(Y, 2)
     # Construct transition distributions for each datapoint in Y
@@ -57,6 +57,14 @@ end
     end
     return r
 end
+
+# Print distribution parameters
+show(io::IO, j::JumpingProcess) = print(io, "JumpingProcess(" *
+                                            "\nprocess: " * string(raw_process(j)) *
+                                            "\njump rate γ: " * string(rate(j)) *
+                                            "\n)")
+
+
 
 struct JumpingProcessNode <: ContinuousMultivariateDistribution
     statdist
@@ -107,3 +115,9 @@ function _logpdf!(r::AbstractArray{<: Real},
 end
 
 Bijectors.bijector(d::JumpingProcessNode) = bijector(d.raw_transdist)
+
+show(io::IO, n::JumpingProcessNode) = print(io, "JumpingProcessNode(" *
+                                            "\nstat dist: " * string(n.statdist) *
+                                            "\nraw trans dist: " * string(n.raw_transdist) *
+                                            "\njump prob: " * string(n.jump_prob) *
+                                            "\n)")

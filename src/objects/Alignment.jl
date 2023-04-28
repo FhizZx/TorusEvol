@@ -1,7 +1,8 @@
 using Base
 
+const Domino = AbstractVector{<:Integer}
 
-struct Alignment <: AbstractVector{AbstractVector{<:Integer}}
+struct Alignment <: AbstractVector{Domino}
     ids :: AbstractVector{Integer}
     row_indices :: Dict{Integer, Integer}
     data :: AbstractMatrix{Integer}
@@ -22,7 +23,7 @@ size(a::Alignment) = (size(a.data, 2),)
 
 IndexStyle(::Type{<:Alignment}) = IndexLinear()
 getindex(a::Alignment, i::Int) = a.data[:, i]
-setindex!(a::Alignment, v::BitVector, i::Int) = a.data[:, i] = v
+@views setindex!(a::Alignment, v::Domino, i::Int) = a.data[:, i] .= v
 
 row_index(a::Alignment, id::Int) = a.row_indices(id)
 
@@ -30,7 +31,7 @@ function subalignment(a::Alignment, ids::Vector[Int]) :: Alignment
     return Alignment(ids, a.data[a.row_indices.(ids), :])
 end
 
-show(io::IO, a::Alignment) = print(io, "Alignment(" * join(eachrow(), '\n'))
+#show(io::IO, a::Alignment) = print(io, "Alignment(" * join(eachrow(), '\n'))
 
 # Combine two alignments using their common "parent" sequence to establish consensus
 function combine(parent_id::Int, a1::Alignment, a2::Alignment) :: Alignment

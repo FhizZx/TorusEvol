@@ -53,6 +53,16 @@ function transdist(c::CTMC, t::Real, x₀)
     return Categorical(P[x₀, :])
 end
 
+num_states(c::CTMC) = size(c.Q, 1)
+
+
+show(io::IO, c::CTMC) = print(io, "CTMC(" *
+                                  "\nnum states: " * string(num_states(c)) *
+                                  "\nstat dist: " * string(round.(statdist(c).p; digits=3)) *
+                                  "\nQ matrix: " * string(round.(c.Q; digits=3)) *
+                                  "\n)")
+
+
 # ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 # CTMC based substitution process
 
