@@ -32,9 +32,9 @@ end
 # optimized for jumping processes
 # Create a matrix r[i, j] = ℙ[Xᵢ, Yⱼ | process p]
 # which gives the joint probability of points Xᵢ and Yⱼ under process p
-@memoize function jointlogpdf!(r::AbstractMatrix{<:Real}, p::JumpingProcess{D}, t::Real,
-                               X::AbstractVecOrMat{<:Real},
-                               Y::AbstractVecOrMat{<:Real}) where D <: Distribution
+function jointlogpdf!(r::AbstractMatrix{<:Real}, p::JumpingProcess{D}, t::Real,
+                      X::AbstractVecOrMat{<:Real},
+                      Y::AbstractVecOrMat{<:Real}) where D <: Distribution
     n = size(X, 2)
     m = size(Y, 2)
     # Construct transition distributions for each datapoint in Y

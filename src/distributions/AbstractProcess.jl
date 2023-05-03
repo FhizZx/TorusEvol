@@ -25,9 +25,9 @@ end
 
 # Create a matrix r[i, j] = ℙ[Xᵢ, Yⱼ | process p]
 # which gives the joint probability of points Xᵢ and Yⱼ under process p
-@memoize function jointlogpdf!(r::AbstractMatrix{<:Real}, p::AbstractProcess{D}, t::Real,
-                               X::AbstractVecOrMat,
-                               Y::AbstractVecOrMat) where D <: Distribution
+function jointlogpdf!(r::AbstractMatrix{<:Real}, p::AbstractProcess{D}, t::Real,
+                      X::AbstractVecOrMat,
+                      Y::AbstractVecOrMat) where D <: Distribution
     m = size(Y, 2)
     # Construct transition distributions for each datapoint in Y
     transdists = Array{D}(undef, m); transdist!(transdists, p, t, Y)
@@ -55,9 +55,9 @@ end
 # r[i, j] = lℙ[Xᵢ, Yⱼ | process p, time t]
 # r[i, m+1] = lℙ[Xᵢ | process p]
 # r[n+1, j] = lℙ[Yⱼ | process p]
-@memoize function fulllogpdf!(r::AbstractMatrix{<:Real}, p::AbstractProcess{D}, t::Real,
-                              X::AbstractVecOrMat,
-                              Y::AbstractVecOrMat) where D <: Distribution
+function fulllogpdf!(r::AbstractMatrix{<:Real}, p::AbstractProcess{D}, t::Real,
+                     X::AbstractVecOrMat,
+                     Y::AbstractVecOrMat) where D <: Distribution
     n = size(X, 2)
     m = size(Y, 2)
     @views jointlogpdf!(r[1:n, 1:m], p, t, X, Y)

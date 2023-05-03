@@ -18,13 +18,15 @@ end
 
 size(d::PairDataHMM) = (d.N_X+1, d.N_Y+1)
 
-function _rand(rng::AbstractRNG, d::PairDataHMM, A::AbstractMatrix{<:Real})
-    A .= rand(d.N_X+1, d.N_Y+1)
+function _rand!(rng::AbstractRNG, d::PairDataHMM, A::AbstractMatrix{<:Real})
+    A .= fill(42.0, d.N_X+1, d.N_Y+1)
+    @info "bad"
     return A
 end
 
 # lℙ[X, Y | params]
 function _logpdf(d::PairDataHMM, emission_lps::AbstractMatrix{<:Real})
+    @info "good"
     α = d.α
     model = d.model
     logp = forward!(α, model, emission_lps; known_ancestor=true)
