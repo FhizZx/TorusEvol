@@ -206,19 +206,44 @@ function gen_full_trans_mat(ts::AbstractVector{<:Real}, λ::Real, μ::Real, r::R
     return A
 end
 
+
+
 struct TKF92
     D::Integer
     ts::AbstractVector{<:Real}
     λ::Real
     μ::Real
     r::Real
+    # The log transition matrix for the alignment markov chain
     A::AbstractMatrix{<:Real}
+
+    full_del_rate::Real
+    known_ancestor::Bool
 end
 
-function TKF92(ts::AbstractVector{<:Real}, λ::Real, μ::Real, r::Real)
-    A = gen_full_trans_mat(ts, λ, μ, r)
+function _remove_selfloop!(A, id)
+    A[id, id] = -Inf
+    # Normalize transition pdf from id
+    A[id, :] .-= logsumexp(A[id, :])
+    @assert isapprox(logsumexp(A[id, :]), 0.0; atol=1e-8)
+end
+
+function TKF92(ts::AbstractVector{<:Real}, λ::Real, μ::Real, r::Real;
+               known_ancestor=true)
     D = length(ts)
-    return TKF92(D, ts,  λ, μ, r, A)
+    A = gen_full_trans_mat(ts, λ, μ, r)
+    full_del_id = align_state_ids[D][gen_ancestor_state(zeros(D))]
+    # Probability of extending alignment with a full deletion event given that the last
+    # state was also a full deletion event
+    full_del_rate = exp(A[full_del_id, full_del_id])
+
+
+    # Remove self loop in order to allow the forward algorithm to work
+    if !known_ancestor
+        _remove_selfloop!(A, full_del_id)
+    end
+
+    return TKF92(D, ts,  λ, μ, r, A, full_del_rate, known_ancestor)
 end
 
 
@@ -228,16 +253,19 @@ transmat(model::TKF92) = model.A
 
 # Return the id of the state corresponding to the ancestor state for which
 # no descendants survive
-no_survivors_ancestor_id(model::TKF92) = align_state_ids[model.D][gen_ancestor_state(zeros(D))]
+no_survivors_ancestor_id(model::TKF92) = align_state_ids[model.D][gen_ancestor_state(zeros(model.D))]
 
+num_known_nodes(model::TKF92) = model.known_ancestor ? model.D + 1 : model.D
 num_descendants(model::TKF92) = model.D
 state_ids_dict(model::TKF92) = align_state_ids[model.D]
 state_ids(model::TKF92) = 1:num_states(model)
 proper_state_ids(model::TKF92) = @views state_ids(model)[3:end]
 states(model::TKF92) = align_states[model.D]
 num_states(model::TKF92) = length(align_states[model.D])
-state_values(model::TKF92) = align_state_values[model.D]
-descendant_values(model::TKF92) = align_state_desc_values[model.D]
+
+# State values used in the forward recursion
+# If ancestor is not observed, we are only concerned about which descendants survived
+state_values(model::TKF92) = model.known_ancestor ? align_state_values[model.D] : align_state_desc_values[model.D]
 
 show(io::IO, model::TKF92) = print(io, "TKF92(" *
                                   "\nnum descendants: " * string(num_descendants(model)) *

@@ -20,28 +20,27 @@ size(d::PairDataHMM) = (d.N_X+1, d.N_Y+1)
 
 function _rand!(rng::AbstractRNG, d::PairDataHMM, A::AbstractMatrix{<:Real})
     A .= fill(42.0, d.N_X+1, d.N_Y+1)
-    @info "bad"
+    # @info "bad"
     return A
 end
 
 # lℙ[X, Y | params]
 function _logpdf(d::PairDataHMM, emission_lps::AbstractMatrix{<:Real})
-    @info "good"
+    #@info "good"
     α = d.α
     model = d.model
-    logp = forward!(α, model, emission_lps; known_ancestor=true)
+    logp = forward!(α, model, emission_lps)
     return logp
 end
 
 # α[state, indices] = ℙ[joint data up to indices, state = last state in HMM]
 function forward!(α::AbstractArray{<:Real}, model::TKF92,
-                  emission_lps::AbstractArray{<:Real};
-                  known_ancestor=false)
-    D = num_descendants(model)
+                  emission_lps::AbstractArray{<:Real})
+    K = num_known_nodes(model)
 
     α = fill!(α, -Inf)
     # Initial state
-    α[ones(Int, D+1)..., START_INDEX] = 0
+    α[ones(Int, K)..., START_INDEX] = 0
     axs = [a .- 1 for a ∈ axes(emission_lps)]
     grid = map(collect, collect(Iterators.product(axs...))) # 0:N_X x 0:N_Y
     end_corner = size(emission_lps) # N_X + 1 by N_Y + 1

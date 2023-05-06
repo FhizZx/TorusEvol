@@ -2,7 +2,8 @@ using LogExpFunctions
 using Distributions
 using TorusEvol
 
-const NUM_PAIRHMM_TESTS = 1
+
+const NUM_PAIRHMM_TESTS = 2000
 @testset "PairDataHMM test $v" for v ∈ 1:NUM_PAIRHMM_TESTS
     Random.seed!(TEST_SEED+v)
 
@@ -39,19 +40,31 @@ const NUM_PAIRHMM_TESTS = 1
 
     N = rand(Geometric(0.05))+1
     M = rand(Geometric(0.05))+1
-    N = 5; M = 5
-    @info N, M
     X = randstat(ξ, N)
     Y = randstat(ξ, M)
-    emission_lps = rand(N+1, M+1)
 
+    emission_lps = rand(N+1, M+1)
     emission_lps = fulllogpdf!(emission_lps, ξ, t, X, Y)
 
     pairdatahmm = PairDataHMM(align_model, num_sites(X), num_sites(Y))
 
     lp = logpdf(pairdatahmm, emission_lps)
 
-    display(exp.(emission_lps))
-    display(exp.(pairdatahmm.α))
-    display(exp(lp))
+
+    prop = rand(Uniform(0, 1))
+    anc_align_model = TKF92([t*prop, t*(1-prop)], λ_a, μ_a, r_a; known_ancestor=false)
+    triplehmm = PairDataHMM(anc_align_model, num_sites(X), num_sites(Y))
+
+    rev_pair_hmm = PairDataHMM(align_model, num_sites(Y), num_sites(X))
+    emission_lps_rev = rand(M+1, N+1)
+    emission_lps_rev = fulllogpdf!(emission_lps_rev, ξ, t, Y, X)
+
+
+    # Test the reversibility of the model:
+    # marginalising the ancestor out is the same as having one descendant directly evolve
+    #into a second descendant
+    @test logpdf(pairdatahmm, emission_lps) ≈ logpdf(triplehmm, emission_lps) atol=1e-2 rtol=0.05
+
+    # X evolving into Y is the same as Y evolving into X
+    @test logpdf(pairdatahmm, emission_lps) ≈ logpdf(rev_pair_hmm, emission_lps_rev) atol=1e-2 rtol=0.005
 end
