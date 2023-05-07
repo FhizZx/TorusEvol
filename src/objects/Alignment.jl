@@ -15,6 +15,11 @@ function Alignment(ids::Vector{<:Integer}, data::AbstractMatrix{<:Integer})
     return Alignment(ids, row_indices, data[:, nonzero_cols])
 end
 
+function Alignment(data::AbstractMatrix{<:Integer})
+    ids = vec(1:size(data, 1))
+    return Alignment(ids, data)
+end
+
 # number of sequences is given by the number of rows
 num_sequences(a::Alignment) = size(a.data, 1)
 

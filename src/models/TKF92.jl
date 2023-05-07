@@ -267,6 +267,9 @@ num_states(model::TKF92) = length(align_states[model.D])
 # If ancestor is not observed, we are only concerned about which descendants survived
 state_values(model::TKF92) = model.known_ancestor ? align_state_values[model.D] : align_state_desc_values[model.D]
 
+# The alignment columns corresponding to the state
+state_align_cols(model::TKF92) = align_state_values[model.D]
+
 show(io::IO, model::TKF92) = print(io, "TKF92(" *
                                   "\nnum descendants: " * string(num_descendants(model)) *
                                   "\nts: " * string(model.ts) *

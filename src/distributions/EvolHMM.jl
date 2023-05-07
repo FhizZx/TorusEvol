@@ -45,8 +45,6 @@ function forward!(α::AbstractArray{<:Real}, model::TKF92,
     grid = map(collect, collect(Iterators.product(axs...))) # 0:N_X x 0:N_Y
     end_corner = size(emission_lps) # N_X + 1 by N_Y + 1
 
-    #values = known_ancestor ? values(model) : descendant_values(model)
-    #A = known_ancestor ? transmat(model) :
     A = transmat(model)
     # Recursion
     for indices ∈ grid, s ∈ proper_state_ids(model)
@@ -65,3 +63,35 @@ function forward!(α::AbstractArray{<:Real}, model::TKF92,
 
     return logp
 end
+
+function backward_sampling(α::AbstractArray{<:Real}, model::TKF92)
+
+    end_corner = size(emission_lps) # N_X + 1 by N_Y + 1
+    A = transmat(model)
+
+    v = A[:, END_INDEX] .+ α[end_corner..., :]
+    logp = logsumexp(v)
+    s = rand(Categorical(exp.(v .- logp)))
+    curr_αind = end_corner
+    align_cols = []
+    while s != START_INDEX
+        col = state_align_cols(model)[s]
+        state = state_values(model)[s]
+        # if ancestor unknown, cannot keep track of index
+        if !model.known_ancestor && s == no_survivors_ancestor_id(model)
+            l = 1 + rand(Geometric(1 - model.full_del_rate))
+            append!(align_cols, fill(col, l))
+        else
+            push!(align_cols, col)
+        end
+
+        # probabilistic backtracking through α
+        prev_αind = curr_αind .- state
+        lps = A[:, s] .+ α[prev_αind..., :] .- α[curr_αind..., s]
+        curr_αind = prev_αind
+        s = rand(Categorical(exp.(lps)))
+    end
+    return Alignment(hcat(reverse(align_cols)))
+end
+
+#todo - sample full alignment from partial alignment
