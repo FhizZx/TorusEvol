@@ -73,7 +73,7 @@ function backward_sampling(α::AbstractArray{<:Real}, model::TKF92)
     logp = logsumexp(v)
     s = rand(Categorical(exp.(v .- logp)))
     curr_αind = end_corner
-    align_cols = []
+    align_cols = Domino[]
     while s != START_INDEX
         col = state_align_cols(model)[s]
         state = state_values(model)[s]
