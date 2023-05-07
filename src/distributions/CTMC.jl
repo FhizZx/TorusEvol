@@ -1,6 +1,7 @@
 using Distributions
 using ExponentialAction
 using Memoization
+using LinearAlgebra
 
 # ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 # Continuous Time Markov Chain (time-reversible with discrete state)
@@ -86,6 +87,11 @@ function SubstitutionProcess(S::LowerTriangular, Π::AbstractVector)
     S[diagind(S)] .= 0.0
     Q = S * Diagonal(Π)
     Q[diagind(Q)] .= sum(-Q, dims = 2)
-    #TODO normalize rate of replacement so that the mean is 1
+    mean_replacement = -dot(Q[diagind(Q)], Π)
+    Q ./= mean_replacement
+    @assert isapprox(-dot(Q[diagind(Q)], Π), 1.0; atol=1e-8) "mean replacement rate should be 1"
+    @assert all(isapprox.(sum(-Q, dims = 2), 0.0; atol=1e-8)) "rows of Q should sum to 0"
+    @assert all(isapprox.(Diagonal(Π) * Q, (Diagonal(Π) * Q)'; atol=1e-8)) "Q should satisfy detailed balance w.r.t. Π"
+
     return CTMC(Π, Q)
 end
