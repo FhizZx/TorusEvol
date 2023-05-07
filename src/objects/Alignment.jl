@@ -1,4 +1,5 @@
 using Base
+import Base: show, size, IndexStyle, getindex, setindex!
 
 const Domino = AbstractVector{<:Integer}
 
@@ -16,27 +17,29 @@ function Alignment(ids::Vector{<:Integer}, data::AbstractMatrix{<:Integer})
 end
 
 function Alignment(data::AbstractMatrix{<:Integer})
-    ids = vec(1:size(data, 1))
+    ids = collect(1:size(data, 1))
     return Alignment(ids, data)
 end
 
+ids(a::Alignment) = a.ids
 # number of sequences is given by the number of rows
 num_sequences(a::Alignment) = size(a.data, 1)
 
 # length of alignment is given by the number of columns
-size(a::Alignment) = (size(a.data, 2),)
+Base.size(a::Alignment) = (size(a.data, 2),)
 
-IndexStyle(::Type{<:Alignment}) = IndexLinear()
-getindex(a::Alignment, i::Int) = a.data[:, i]
-@views setindex!(a::Alignment, v::Domino, i::Int) = a.data[:, i] .= v
+Base.IndexStyle(::Type{<:Alignment}) = IndexLinear()
+Base.getindex(a::Alignment, i::Int) = a.data[:, i]
+@views Base.setindex!(a::Alignment, v::Domino, i::Int) = a.data[:, i] .= v
 
-row_index(a::Alignment, id::Int) = a.row_indices(id)
+row_index(a::Alignment, id::Int) = a.row_indices[id]
 
-function subalignment(a::Alignment, ids::Vector[Int]) :: Alignment
-    return Alignment(ids, a.data[a.row_indices.(ids), :])
+function subalignment(a::Alignment, ids::AbstractVector{<:Integer}) :: Alignment
+    new_indices = getindex.(Ref(a.row_indices), ids)
+    return Alignment(ids, a.data[new_indices, :])
 end
 
-#show(io::IO, a::Alignment) = print(io, "Alignment(" * join(eachrow(), '\n'))
+Base.show(io::IO, a::Alignment) = print(io, "Alignment(" * string(a.data) * '\n')
 
 # Combine two alignments using their common "parent" sequence to establish consensus
 function combine(parent_id::Int, a1::Alignment, a2::Alignment) :: Alignment
@@ -58,7 +61,7 @@ function combine(parent_id::Int, a1::Alignment, a2::Alignment) :: Alignment
 
     n = length(a1)
     m = length(a2)
-    i = 1, j = 1
+    i = 1; j = 1
     columns = []
 
     # Match columns which have a parent residue in common

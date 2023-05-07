@@ -1,4 +1,3 @@
-using BioAlignments
 using LinearAlgebra
 using Distributions
 using DelimitedFiles

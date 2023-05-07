@@ -52,7 +52,7 @@ ancestor_state_ids(D) = 2 .+ (1:2^D)
 # res[i, j] = sum(v[i:(j-1)]), i < j
 function segment_sum(v::AbstractVector)
     n = length(v)
-    res = fill(-Inf, n, n+1)
+    res = similar(v, n, n+1)
     for i ∈ 1:n
         res[i, i] = 0
         for j ∈ i:n
@@ -90,7 +90,8 @@ end
 function gen_full_trans_mat(ts::AbstractVector{<:Real}, λ::Real, μ::Real, r::Real)
     D = length(ts)
     num_states = length(align_states[D])
-    A = fill(-Inf, num_states, num_states)
+    A = Array{Real}(undef, num_states, num_states)
+    A .= -Inf
 
     # Link extension log probability
     lext = log(r)

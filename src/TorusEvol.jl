@@ -2,7 +2,7 @@ module TorusEvol
 
 using Distributions, Random
 
-import Base: length, eltype, show, size
+import Base: length, eltype, show, size, setindex!, getindex, IndexStyle
 import Distributions: _logpdf, _logpdf!, mean, _rand!
 
 export
@@ -22,6 +22,16 @@ export
     num_coords,
     num_regimes,
     slice,
+
+    # objects/Alignment
+    Alignment,
+    Domino,
+    ids,
+    num_sequences,
+    row_index,
+    subalignment,
+    combine,
+
 
     # models/TKF92
     TKF92,
@@ -86,7 +96,7 @@ export
 
 
 # Objects
-#include("objects/Alignment.jl")
+include("objects/Alignment.jl")
 include("objects/Data.jl")
 include("objects/Polypeptide.jl")
 

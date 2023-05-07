@@ -117,9 +117,9 @@ end
 function _logpdf!(r::AbstractArray{<: Real},
                   wn::WrappedNormal, X::AbstractMatrix{<: Real})
     shifted_X = cmod.(X)
-    shifted_logp = similar(r)
-    fill!(r, -Inf)
-    tape = hcat(r, shifted_logp)
+
+    tape = Array{Real}(undef, length(r), 2)
+    tape .= -Inf
     r = @view tape[:, 1]
     shifted_logp = @view tape[:, 2]
     prev_col = [0.0, 0.0]
@@ -128,7 +128,8 @@ function _logpdf!(r::AbstractArray{<: Real},
         prev_col = col
         #logpdf!(shifted_logp, wn.𝛷, shifted_X)
         shifted_logp .= logpdf(wn.𝛷, shifted_X)
-        logsumexp!(r, tape)
+        #logsumexp!(r, tape)
+        r .= logsumexp(tape)
     end
     copy(r)
 end
