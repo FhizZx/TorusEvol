@@ -67,6 +67,7 @@ export
     cmod,
     unwrapped,
     lattice,
+    _logpdf!,
 
     # distributions/WrappedDiffusion
     WrappedDiffusion,

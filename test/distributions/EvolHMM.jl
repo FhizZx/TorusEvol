@@ -9,8 +9,8 @@ const NUM_PAIRHMM_TESTS = 2000
 
     t = rand(Exponential(1))
 
-    λ_a = rand(Exponential(1))
-    seq_length = rand(Exponential(0.01))
+    λ_a = rand(Exponential(0.01))
+    seq_length = rand(Exponential(100))
     μ_a = (seq_length+1) * λ_a
     r_a = rand(Uniform(0,1))
     align_model = TKF92([t], λ_a, μ_a, r_a)

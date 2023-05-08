@@ -238,6 +238,7 @@ function _logpdf!(r::AbstractArray{<:Real},
         # r .= logsumexp(logpdf.(d.driftdists, Ref(cmod(X))) .+
         #                log.(pdf(d.winddist));
         #                dims=1).
+        #todo optimize this as well
         logsumexp!(r, logpdf.(d.driftdists, Ref(cmod(X))) .+ log.(pdf(d.winddist)))
     end
 

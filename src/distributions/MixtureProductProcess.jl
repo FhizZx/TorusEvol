@@ -75,7 +75,7 @@ function jointlogpdf!(r::AbstractMatrix{<:Real},
 
     # Compute the contribution of each regime to the final logpdf
     r_e = similar(workspace)
-    fill!(r, -Inf)
+
     for e ∈ 1:E
         w = weights(m)[e]
         r_e .= log(w)
@@ -102,7 +102,7 @@ function statlogpdf!(r::AbstractVector{<:Real},
 
     # Compute the contribution of each regime to the final logpdf
     r_e = similar(r)
-    fill!(r, -Inf)
+
     for e ∈ 1:E
         w = weights(m)[e]
         r_e .= log(w)

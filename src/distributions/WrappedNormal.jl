@@ -1,13 +1,18 @@
 using Distributions, Random
 using PDMats
-using LogExpFunctions, LinearAlgebra
+using LinearAlgebra
 using Plots
 using DistributionsAD
 using Bijectors
 using Statistics
+using LogExpFunctions
 
 import Base: length, eltype, show, size
 import Distributions: _logpdf, _logpdf!, mean, _rand!
+
+using FastLogSumExp: mat_logsumexp_dual_reinterp! as fastlogsumexp!
+
+#using FastLogSumExp:
 
 # __________________________________________________________________________________________
 # Helper functions
@@ -129,10 +134,33 @@ function _logpdf!(r::AbstractArray{<: Real},
         #logpdf!(shifted_logp, wn.𝛷, shifted_X)
         shifted_logp .= logpdf(wn.𝛷, shifted_X)
         #logsumexp!(r, tape)
-        r .= logsumexp(tape)
+        #r .= logsumexp(tape; dims=2)
+        #todo - use fastlogsumexp
+        r .= logaddexp.(r, shifted_logp)
     end
     copy(r)
 end
+
+# function _fastlogpdf!(r::AbstractArray{<: Real},
+#                       wn::WrappedNormal, X::AbstractMatrix{<: Real})
+#     shifted_X = cmod.(X)
+
+#     tape = Array{Real}(undef, length(r), 2)
+#     tape .= -Inf
+#     r = @view tape[:, 1]
+#     shifted_logp = @view tape[:, 2]
+#     prev_col = [0.0, 0.0]
+#     for col ∈ eachcol(wn.𝕃)
+#         shifted_X .+= col .- prev_col
+#         prev_col = col
+#         #logpdf!(shifted_logp, wn.𝛷, shifted_X)
+#         shifted_logp .= logpdf(wn.𝛷, shifted_X)
+#         # check dual
+#         fastlogsumexp!(r, tape)
+#     end
+#     copy(r)
+# end
+
 
 # This gives lower numerical errors but allocates much more memory
 function _accuratelogpdf!(r::AbstractArray{<: Real},
