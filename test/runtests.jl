@@ -3,6 +3,9 @@ using TorusEvol
 using Test
 using Random
 
+include("distributions/torus_distributions.jl")
+include("distributions/processes.jl")
+
 const TEST_SEED = 123456
 printstyled("Running tests:\n", color=:blue)
 
@@ -14,4 +17,5 @@ tests = ["distributions/EvolHMM"]
     @testset "Test $t" for t in tests
         include("$t.jl")
     end
+    print(to)
 end

@@ -65,10 +65,13 @@ end
 # 𝕃 = 2π[-r,r]ᵈ ∩ B(𝛷, R) (in sqmahal distance)
 function WrappedNormal(μ::AbstractVector{T}, Σ::AbstractPDMat{T}) where T <: Real
     𝛷 = MvNormal(cmod(μ), Σ)
-    R = 10.0
-    r = ceil(Int, R * 1.5)
+    #R = 10.0
+    #r = ceil(Int, R * 1.5)
     #𝕃 = discrete_ellipsoid(𝛷, r, R)
+
+    #temp - consider only the 8 neighbouring quadrants in the lattice
     𝕃 = twoπ_hyper_cube(1, length(μ))
+
     WrappedNormal(𝛷, 𝕃)
 end
 
@@ -109,7 +112,7 @@ Base.eltype(wn::WrappedNormal) = eltype(wn.𝛷)
 # Generate samples according to WN
 #optimized
 function _rand!(rng::AbstractRNG, wn::WrappedNormal, x::AbstractVecOrMat{<: Real})
-    x .= cmod(_rand!(rng, wn.𝛷, x))
+    x .= cmod.(_rand!(rng, wn.𝛷, x))
     return x
 end
 
@@ -120,11 +123,11 @@ end
 
 #optimized
 function _logpdf!(r::AbstractArray{<: Real},
-                  wn::WrappedNormal, X::AbstractVecOrMat{<: Real})
+                  wn::WrappedNormal, X::AbstractMatrix{<: Real})
     shifted_X = cmod.(X)
 
-    @timeit to "make tape" tape = Array{Real}(undef, length(r), 2)
-    @timeit to "make tape" tape .= -Inf
+    tape = Array{Real}(undef, length(r), 2)
+    tape .= -Inf
     r = @view tape[:, 1]
     shifted_logp = @view tape[:, 2]
     prev_col = [0.0, 0.0]
@@ -132,11 +135,13 @@ function _logpdf!(r::AbstractArray{<: Real},
         shifted_X .+= col .- prev_col
         prev_col = col
         #logpdf!(shifted_logp, wn.𝛷, shifted_X)
-        @timeit to "logpdf gaussian" shifted_logp .= logpdf(wn.𝛷, shifted_X)
+
         #logsumexp!(r, tape)
         #r .= logsumexp(tape; dims=2)
         #todo - use fastlogsumexp
-        @timeit to "logaddexp wn" r .= logaddexp.(r, shifted_logp)
+
+        shifted_logp .= logpdf(wn.𝛷, shifted_X)
+        r .= logaddexp.(r, shifted_logp)
     end
     copy(r)
 end

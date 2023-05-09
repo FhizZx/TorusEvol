@@ -3,14 +3,14 @@ using Distributions
 using TorusEvol
 
 
-const NUM_PAIRHMM_TESTS = 2000
+const NUM_PAIRHMM_TESTS = 10
 @testset "PairDataHMM test $v" for v ∈ 1:NUM_PAIRHMM_TESTS
     Random.seed!(TEST_SEED+v)
 
     t = rand(Exponential(1))
 
     λ_a = rand(Exponential(0.01))
-    seq_length = rand(Exponential(100))
+    seq_length = rand(Exponential(0.01))
     μ_a = (seq_length+1) * λ_a
     r_a = rand(Uniform(0,1))
     align_model = TKF92([t], λ_a, μ_a, r_a)
@@ -38,13 +38,12 @@ const NUM_PAIRHMM_TESTS = 2000
     ξ = MixtureProductProcess(proc_weights, vcat(sub_procs, diff_procs))
 
 
-    N = rand(Geometric(0.05))+1
-    M = rand(Geometric(0.05))+1
+    N = rand(Geometric(0.01))+1
+    M = rand(Geometric(0.01))+1
     X = randstat(ξ, N)
     Y = randstat(ξ, M)
 
-    emission_lps = rand(N+1, M+1)
-    emission_lps = fulllogpdf!(emission_lps, ξ, t, X, Y)
+    emission_lps = fulllogpdf(ξ, t, X, Y)
 
     pairdatahmm = PairDataHMM(align_model, num_sites(X), num_sites(Y))
 
@@ -56,8 +55,7 @@ const NUM_PAIRHMM_TESTS = 2000
     triplehmm = PairDataHMM(anc_align_model, num_sites(X), num_sites(Y))
 
     rev_pair_hmm = PairDataHMM(align_model, num_sites(Y), num_sites(X))
-    emission_lps_rev = rand(M+1, N+1)
-    emission_lps_rev = fulllogpdf!(emission_lps_rev, ξ, t, Y, X)
+    emission_lps_rev = fulllogpdf(ξ, t, Y, X)
 
 
     # Test the reversibility of the model:

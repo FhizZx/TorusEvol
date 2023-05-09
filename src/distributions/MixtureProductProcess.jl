@@ -80,10 +80,10 @@ function jointlogpdf!(r::AbstractMatrix{<:Real},
         w = weights(m)[e]
         r_e .= log(w)
         for c ∈ 1:C
-            jointlogpdf!(workspace, processes(m)[c, e] , t, xs[c], ys[c])
+            @timeit to "jointlogpdf" jointlogpdf!(workspace, processes(m)[c, e] , t, xs[c], ys[c])
             r_e .= r_e .+ workspace
         end
-        @timeit to "logaddexp joint mixture" r .= logaddexp.(r, r_e)
+        r .= logaddexp.(r, r_e)
     end
 
     return r
@@ -107,10 +107,10 @@ function statlogpdf!(r::AbstractVector{<:Real},
         w = weights(m)[e]
         r_e .= log(w)
         for c ∈ 1:C
-            statlogpdf!(workspace, processes(m)[c, e], xs[c])
+            @timeit to "statlogpdf" statlogpdf!(workspace, processes(m)[c, e], xs[c])
             r_e .= r_e .+ workspace
         end
-        @timeit to "logaddexp stat mixture" r .= logaddexp.(r, r_e)
+        r .= logaddexp.(r, r_e)
     end
 
     return r

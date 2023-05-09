@@ -225,15 +225,25 @@ function _rand!(rng::AbstractRNG, d::WrappedDiffusionNode, x::AbstractVecOrMat{<
 end
 
 # Log density of WN over 𝕋ᵈ
-_logpdf(d::WrappedDiffusionNode, x::AbstractVector{<: Real}) = _logpdf!(Array{Real}(undef, 1), d, x)[1]
+function _logpdf(d::WrappedDiffusionNode, x::AbstractVector{<: Real})
+    t = d.t
+    θ₀ = d.θ₀
+    θₜ = cmod(x)
+     # if t == 0, distribution degenerates into Dirac(θ₀)
+    if t < eps(typeof(t))
+        return θ₀ .== θₜ ? Inf : -Inf
+    end
 
-function _logpdf!(r::AbstractArray{<:Real},
-                  d::WrappedDiffusionNode, X::AbstractVecOrMat{<: Real})
+    @timeit to "bad" return logsumexp(logpdf.(d.driftdists, Ref(θₜ)) .+ log.(pdf(d.winddist)))
+end
+
+function Distributions._logpdf!(r::AbstractArray{<:Real},
+                                d::WrappedDiffusionNode, X::AbstractVecOrMat{<: Real})
     t = d.t
 
     # if t == 0, distribution degenerates into Dirac(θ₀)
     if t < eps(typeof(t))
-        r .= map(θₜ -> d.θ₀ == θₜ, cmod(X))
+        r .= map(θₜ -> d.θ₀ == θₜ ? Inf : -Inf, eachcol(cmod(X)))
     else
         # r .= logsumexp(logpdf.(d.driftdists, Ref(cmod(X))) .+
         #                log.(pdf(d.winddist));
@@ -241,8 +251,8 @@ function _logpdf!(r::AbstractArray{<:Real},
         #todo optimize this as well
         r .= -Inf
         tape = Array{Real}(undef, length(r))
+        tape .= -Inf
         for i ∈ eachindex(d.driftdists)
-            @info X
             @timeit to "logpdf wn drift" _logpdf!(tape, d.driftdists[i], cmod(X))
             @timeit to "logaddexp wrapped diff node" r .= logaddexp.(r, tape .+ log(pdf(d.winddist)[i]))
         end
