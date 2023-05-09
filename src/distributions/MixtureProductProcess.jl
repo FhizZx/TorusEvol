@@ -83,7 +83,7 @@ function jointlogpdf!(r::AbstractMatrix{<:Real},
             jointlogpdf!(workspace, processes(m)[c, e] , t, xs[c], ys[c])
             r_e .= r_e .+ workspace
         end
-        r .= logaddexp.(r, r_e)
+        @timeit to "logaddexp joint mixture" r .= logaddexp.(r, r_e)
     end
 
     return r
@@ -110,7 +110,7 @@ function statlogpdf!(r::AbstractVector{<:Real},
             statlogpdf!(workspace, processes(m)[c, e], xs[c])
             r_e .= r_e .+ workspace
         end
-        r .= logaddexp.(r, r_e)
+        @timeit to "logaddexp stat mixture" r .= logaddexp.(r, r_e)
     end
 
     return r

@@ -5,7 +5,12 @@ using Distributions, Random
 import Base: length, eltype, show, size, setindex!, getindex, IndexStyle
 import Distributions: _logpdf, _logpdf!, mean, _rand!
 
+using TimerOutputs
+const to = TimerOutput()
+
 export
+    to,
+
     # objects/Polypeptide
     Polypeptide,
     from_pdb,

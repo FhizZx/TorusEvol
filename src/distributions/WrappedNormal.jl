@@ -120,11 +120,11 @@ end
 
 #optimized
 function _logpdf!(r::AbstractArray{<: Real},
-                  wn::WrappedNormal, X::AbstractMatrix{<: Real})
+                  wn::WrappedNormal, X::AbstractVecOrMat{<: Real})
     shifted_X = cmod.(X)
 
-    tape = Array{Real}(undef, length(r), 2)
-    tape .= -Inf
+    @timeit to "make tape" tape = Array{Real}(undef, length(r), 2)
+    @timeit to "make tape" tape .= -Inf
     r = @view tape[:, 1]
     shifted_logp = @view tape[:, 2]
     prev_col = [0.0, 0.0]
@@ -132,11 +132,11 @@ function _logpdf!(r::AbstractArray{<: Real},
         shifted_X .+= col .- prev_col
         prev_col = col
         #logpdf!(shifted_logp, wn.𝛷, shifted_X)
-        shifted_logp .= logpdf(wn.𝛷, shifted_X)
+        @timeit to "logpdf gaussian" shifted_logp .= logpdf(wn.𝛷, shifted_X)
         #logsumexp!(r, tape)
         #r .= logsumexp(tape; dims=2)
         #todo - use fastlogsumexp
-        r .= logaddexp.(r, shifted_logp)
+        @timeit to "logaddexp wn" r .= logaddexp.(r, shifted_logp)
     end
     copy(r)
 end

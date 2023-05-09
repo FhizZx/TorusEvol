@@ -228,7 +228,7 @@ end
 _logpdf(d::WrappedDiffusionNode, x::AbstractVector{<: Real}) = _logpdf!(Array{Real}(undef, 1), d, x)[1]
 
 function _logpdf!(r::AbstractArray{<:Real},
-                  d::WrappedDiffusionNode, X::AbstractArray{<: Real})
+                  d::WrappedDiffusionNode, X::AbstractVecOrMat{<: Real})
     t = d.t
 
     # if t == 0, distribution degenerates into Dirac(θ₀)
@@ -239,7 +239,14 @@ function _logpdf!(r::AbstractArray{<:Real},
         #                log.(pdf(d.winddist));
         #                dims=1).
         #todo optimize this as well
-        logsumexp!(r, logpdf.(d.driftdists, Ref(cmod(X))) .+ log.(pdf(d.winddist)))
+        r .= -Inf
+        tape = Array{Real}(undef, length(r))
+        for i ∈ eachindex(d.driftdists)
+            @info X
+            @timeit to "logpdf wn drift" _logpdf!(tape, d.driftdists[i], cmod(X))
+            @timeit to "logaddexp wrapped diff node" r .= logaddexp.(r, tape .+ log(pdf(d.winddist)[i]))
+        end
+        #@timeit to "logsumexp wrapped diff node" logsumexp!(r, logpdf.(d.driftdists, Ref(cmod(X))) .+ log.(pdf(d.winddist)))
     end
 
     r
