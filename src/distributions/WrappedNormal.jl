@@ -112,7 +112,8 @@ Base.eltype(wn::WrappedNormal) = eltype(wn.𝛷)
 # Generate samples according to WN
 #optimized
 function _rand!(rng::AbstractRNG, wn::WrappedNormal, x::AbstractVecOrMat{<: Real})
-    x .= cmod.(_rand!(rng, wn.𝛷, x))
+    _rand!(rng, wn.𝛷, x)
+    x .= cmod.(x)
     return x
 end
 

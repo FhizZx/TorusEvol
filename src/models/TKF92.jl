@@ -53,6 +53,7 @@ ancestor_state_ids(D) = 2 .+ (1:2^D)
 function segment_sum(v::AbstractVector)
     n = length(v)
     res = similar(v, n, n+1)
+    res .= -Inf
     for i ∈ 1:n
         res[i, i] = 0
         for j ∈ i:n
@@ -270,6 +271,8 @@ state_values(model::TKF92) = model.known_ancestor ? align_state_values[model.D] 
 
 # The alignment columns corresponding to the state
 state_align_cols(model::TKF92) = align_state_values[model.D]
+
+Base.eltype(model::TKF92) = typeof(model.ts[1] * model.λ * model.μ * model.r)
 
 show(io::IO, model::TKF92) = print(io, "TKF92(" *
                                   "\nnum descendants: " * string(num_descendants(model)) *

@@ -1,5 +1,7 @@
 using Distributions
 using LogExpFunctions
+using FastLogSumExp
+using ForwardDiff
 
 # Matrix distribution of size N_X+1 * N_Y+1
 # over the joint log probabilities of 2 sequences of lengths
@@ -47,15 +49,28 @@ function forward!(α::AbstractArray{<:Real}, model::TKF92,
 
     A = transmat(model)
     # Recursion
+
+    #hack
+    T = promote_type(eltype(model), typeof(emission_lps[1, 1]))
+
+    tape = Array{T}(undef, num_states(model))
+    tape .= -Inf
+    tmp = Vector{Float64}(undef, length(tape))
     for indices ∈ grid, s ∈ proper_state_ids(model)
         state = state_values(model)[s]
         curr_αind = 1 .+ indices
         prev_αind = curr_αind .- state
         if all(prev_αind .>= 1)
             obs_ind = @. ifelse(state == 1, indices, end_corner)
-
-            @views α[curr_αind..., s] = emission_lps[obs_ind...] +
-                                        logsumexp(A[:, s] .+ α[prev_αind..., :])
+            tape .= A[:, s] .+ α[prev_αind..., :]
+            state_lp = logsumexp(tape)
+            # if T <: AbstractFloat
+            #     state_lp = FastLogSumExp.vec_logsumexp_float_turbo(tape)
+            # else
+            #     state_lp = FastLogSumExp.vec_logsumexp_dual_reinterp!(tmp, tape)
+            # end
+            @timeit to "logsumexp α" @views α[curr_αind..., s] = emission_lps[obs_ind...] +
+                                                                 state_lp
         end
     end
 
@@ -66,7 +81,7 @@ end
 
 function backward_sampling(α::AbstractArray{<:Real}, model::TKF92)
 
-    end_corner = size(emission_lps) # N_X + 1 by N_Y + 1
+    end_corner = size(α)[1:end-1] # N_X + 1 by N_Y + 1
     A = transmat(model)
 
     v = A[:, END_INDEX] .+ α[end_corner..., :]

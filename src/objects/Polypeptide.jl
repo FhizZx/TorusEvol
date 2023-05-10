@@ -42,10 +42,11 @@ function Polypeptide(chain::Chain; primary=true, ramachandran=true,
     return Polypeptide(ObservedData(feats), row_names, chain)
 end
 
-function from_pdb(id::String, chain_id::String)
+function from_pdb(id::String, chain_id::String; primary=true, ramachandran=true,
+                                                omega=false, cartesian=false)
     struc = retrievepdb(id, dir="data/pdb")
     chain = struc[chain_id]
-    return Polypeptide(chain)
+    return Polypeptide(chain; primary=primary, ramachandran=ramachandran, omega=omega, cartesian=cartesian)
 end
 
 Base.length(p::Polypeptide) = length(p.data)

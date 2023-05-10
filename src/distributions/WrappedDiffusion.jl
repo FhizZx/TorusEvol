@@ -217,8 +217,11 @@ function _rand!(rng::AbstractRNG, d::WrappedDiffusionNode, x::AbstractVecOrMat{<
     windnums = rand(rng, d.winddist, n)
 
     # step 2 - sample from WN(μᵐₜ, Γₜ)
-    for i ∈ 1:n
-        x[:, i] .= rand(rng, d.driftdists[windnums[i]])
+    for w ∈ eachindex(d.driftdists)
+        indx = windnums .== w
+        if any(indx)
+            @views @timeit to "rand" _rand!(rng, d.driftdists[w], x[:, indx])
+        end
     end
 
     x
@@ -234,7 +237,7 @@ function _logpdf(d::WrappedDiffusionNode, x::AbstractVector{<: Real})
         return θ₀ .== θₜ ? Inf : -Inf
     end
 
-    @timeit to "bad" return logsumexp(logpdf.(d.driftdists, Ref(θₜ)) .+ log.(pdf(d.winddist)))
+    return logsumexp(logpdf.(d.driftdists, Ref(θₜ)) .+ log.(pdf(d.winddist)))
 end
 
 function Distributions._logpdf!(r::AbstractArray{<:Real},
