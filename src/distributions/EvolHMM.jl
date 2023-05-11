@@ -84,11 +84,18 @@ function backward_sampling(α::AbstractArray{<:Real}, model::TKF92)
     end_corner = size(α)[1:end-1] # N_X + 1 by N_Y + 1
     A = transmat(model)
 
-    v = A[:, END_INDEX] .+ α[end_corner..., :]
-    logp = logsumexp(v)
-    s = rand(Categorical(exp.(v .- logp)))
+    # the log probability of doing a backstep to a state from current state
+    lps = Array{Real}(undef, num_states(model))
+
+    # first, step back from the END state
+    lps .= A[:, END_INDEX] .+ α[end_corner..., :]
+    lps .-= logsumexp(lps)
+
+    s = rand(Categorical(exp.(lps)))
     curr_αind = end_corner
     align_cols = Domino[]
+
+    # keep doing back steps until the START state is reached
     while s != START_INDEX
         col = state_align_cols(model)[s]
         state = state_values(model)[s]
@@ -102,11 +109,13 @@ function backward_sampling(α::AbstractArray{<:Real}, model::TKF92)
 
         # probabilistic backtracking through α
         prev_αind = curr_αind .- state
-        lps = A[:, s] .+ α[prev_αind..., :] .- α[curr_αind..., s]
+        lps .= A[:, s] .+ α[prev_αind..., :] .- α[curr_αind..., s]
+        lps .-= logsumexp(lps)
         curr_αind = prev_αind
+
         s = rand(Categorical(exp.(lps)))
     end
-    return Alignment(hcat(reverse(align_cols)))
+    return Alignment(hcat(reverse(align_cols)...))
 end
 
 #todo - sample full alignment from partial alignment

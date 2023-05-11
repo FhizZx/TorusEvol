@@ -33,9 +33,11 @@ export
     Domino,
     ids,
     num_sequences,
+    sequence_lengths,
     row_index,
     subalignment,
     combine,
+    mask,
 
 
     # models/TKF92

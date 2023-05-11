@@ -35,6 +35,12 @@ Base.getindex(a::Alignment, i::Int) = a.data[:, i]
 
 row_index(a::Alignment, id::Int) = a.row_indices[id]
 
+function mask(a::Alignment, allowed::AbstractArray{<:Domino})
+    return BitVector([all(v .∈ allowed) for v ∈ a])
+end
+
+sequence_lengths(a::Alignment) = [count(x -> x==1, a.data[i, :]) for i ∈ 1:num_sequences(a)]
+
 function subalignment(a::Alignment, ids::AbstractVector{<:Integer}) :: Alignment
     new_indices = getindex.(Ref(a.row_indices), ids)
     return Alignment(ids, a.data[new_indices, :])
