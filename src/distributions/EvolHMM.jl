@@ -63,14 +63,13 @@ function forward!(α::AbstractArray{<:Real}, model::TKF92,
         if all(prev_αind .>= 1)
             obs_ind = @. ifelse(state == 1, indices, end_corner)
             tape .= A[:, s] .+ α[prev_αind..., :]
-            state_lp = logsumexp(tape)
+            @timeit to "logsumexp α" state_lp = logsumexp(tape)
             # if T <: AbstractFloat
             #     state_lp = FastLogSumExp.vec_logsumexp_float_turbo(tape)
             # else
             #     state_lp = FastLogSumExp.vec_logsumexp_dual_reinterp!(tmp, tape)
             # end
-            @timeit to "logsumexp α" @views α[curr_αind..., s] = emission_lps[obs_ind...] +
-                                                                 state_lp
+            α[curr_αind..., s] = emission_lps[obs_ind...] + state_lp
         end
     end
 

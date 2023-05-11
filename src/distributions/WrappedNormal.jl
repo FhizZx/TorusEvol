@@ -141,7 +141,7 @@ function _logpdf!(r::AbstractArray{<: Real},
         #r .= logsumexp(tape; dims=2)
         #todo - use fastlogsumexp
 
-        shifted_logp .= logpdf(wn.𝛷, shifted_X)
+        @timeit to "lp normal" shifted_logp .= logpdf(wn.𝛷, shifted_X)
         r .= logaddexp.(r, shifted_logp)
     end
     copy(r)
