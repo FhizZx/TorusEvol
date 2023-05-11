@@ -27,17 +27,17 @@ function _rand!(rng::AbstractRNG, d::PairDataHMM, A::AbstractMatrix{<:Real})
 end
 
 # lℙ[X, Y | params]
-function _logpdf(d::PairDataHMM, emission_lps::AbstractMatrix{<:Real})
+function _logpdf(d::PairDataHMM, emission_lps::AbstractMatrix{<:Real}; optimized=false)
     #@info "good"
     α = d.α
     model = d.model
-    logp = forward!(α, model, emission_lps)
+    logp = forward!(α, model, emission_lps; optimized=optimized)
     return logp
 end
 
 # α[state, indices] = ℙ[joint data up to indices, state = last state in HMM]
 function forward!(α::AbstractArray{<:Real}, model::TKF92,
-                  emission_lps::AbstractArray{<:Real})
+                  emission_lps::AbstractArray{<:Real}; optimized=false)
     K = num_known_nodes(model)
 
     α = fill!(α, -Inf)
@@ -56,19 +56,32 @@ function forward!(α::AbstractArray{<:Real}, model::TKF92,
     tape = Array{T}(undef, num_states(model))
     tape .= -Inf
     tmp = Vector{Float64}(undef, length(tape))
+    tmp .= -Inf
+
+    curr_αind = ones(Int, K)
+    prev_αind = ones(Int, K)
     for indices ∈ grid, s ∈ proper_state_ids(model)
         state = state_values(model)[s]
-        curr_αind = 1 .+ indices
-        prev_αind = curr_αind .- state
+        curr_αind .= 1 .+ indices
+        prev_αind .= curr_αind .- state
         if all(prev_αind .>= 1)
             obs_ind = @. ifelse(state == 1, indices, end_corner)
             tape .= A[:, s] .+ α[prev_αind..., :]
-            @timeit to "logsumexp α" state_lp = logsumexp(tape)
-            # if T <: AbstractFloat
-            #     state_lp = FastLogSumExp.vec_logsumexp_float_turbo(tape)
-            # else
-            #     state_lp = FastLogSumExp.vec_logsumexp_dual_reinterp!(tmp, tape)
-            # end
+
+            @timeit to "logsumexp α" begin
+                if optimized
+                    if T <: AbstractFloat
+                        #@info "turbo"
+                        state_lp = FastLogSumExp.vec_logsumexp_float_turbo(tape)
+                    else
+                        #@info "dual"
+                        state_lp = FastLogSumExp.vec_logsumexp_dual_reinterp!(tmp, tape)
+                    end
+                else
+                    #@info "unoptimized"
+                    state_lp = logsumexp(tape)
+                end
+            end
             α[curr_αind..., s] = emission_lps[obs_ind...] + state_lp
         end
     end

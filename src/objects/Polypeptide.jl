@@ -25,6 +25,7 @@ calpha_coords(chain::Chain) = coordarray(chain, calphaselector)
 struct Polypeptide
     data::ObservedData
     row_names::AbstractVector{String}
+    rows::Dict{String, Integer}
     chain::BioStructures.Chain
 end
 
@@ -35,11 +36,13 @@ function Polypeptide(chain::Chain; primary=true, ramachandran=true,
     row_names = []
 
     primary && (push!(feats, aa_sequence(chain)); push!(row_names, "aminoacid"))
-    ramachandran && (push!(feats, ramachandran_angles(chain)); push!(row_names, "ϕ, ψ angles"))
+    ramachandran && (push!(feats, ramachandran_angles(chain)); push!(row_names, "ramachadran angles"))
     omega && (push!(feats, omega_angles(chain)); push!(row_names, "ω angle"))
     cartesian && (push!(feats, calpha_coords(chain)); push!(row_names, "Cα coords"))
 
-    return Polypeptide(ObservedData(feats), row_names, chain)
+    rows = Dict([(row_names[i], i) for i ∈ eachindex(row_names)])
+
+    return Polypeptide(ObservedData(feats), row_names, rows, chain)
 end
 
 function from_pdb(id::String, chain_id::String; primary=true, ramachandran=true,
@@ -55,6 +58,11 @@ num_coords(p::Polypeptide) = num_coords(p.data)
 data(p::Polypeptide) = p.data
 chain(p::Polypeptide) = p.chain
 
+# Returns the data corresponding to a given coordinate
+function get_coord(p::Polypeptide, coord_name::String)
+    id = p.rows[coord_name]
+    return data(p).data[id]
+end
 
 # Render the backbone of a polypeptide using Bio3DView
 function render(p::Polypeptide)

@@ -10,7 +10,7 @@ one_to_three = Dict('A' => "ALA", 'C' => "CYS", 'D' => "ASP", 'E' => "GLU", 'F' 
                     'S' => "SER", 'T' => "THR", 'W' => "TRP", 'V' => "VAL", 'Y' => "TYR")
 one_to_three = DefaultDict("XXX", one_to_three)
 
-# TODO find a source for these values
+
 # Empirical backbone bond angle distribution
 # ideal_bond_angle[bond1-bond2, aminoacid] = mean, stddev
 # ideal angle ~ WrappedNormal(mean, stddev) radians
@@ -74,44 +74,47 @@ function Atom(serial::Int, name::String, coords::Vector{Float64},
     return BioStructures.Atom(serial, name, ' ', coords, 1.0, 13.0, element, "  ", residue)
 end
 
-function build_chain_from_alignment(chain::Chain, alignment, Y)
-    indicesX = findall(∈([MATCH, DELETE]), alignment)
-    indicesY = findall(∈([MATCH, INSERT]), alignment)
+function build_chain_from_alignment(chain::Chain,
+                                    alignment::Alignment,
+                                    Y::ObservedData)
+    maskX = mask(alignment, [[1], [0,1]])
+    maskY = mask(alignment, [[0,1], [1]])
 
-    n = length(indicesY)
+    n = count(maskY)
 
-    alignmentX = alignment[indicesX]
-    alignmentY = alignment[indicesY]
-    indicesIY = findall(==(INSERT), alignmentY)
-    indicesMX = findall(==(MATCH), alignmentX)
-    indicesMY = findall(==(MATCH), alignmentY)
+    alignmentX = alignment[maskX]
+    alignmentY = alignment[maskY]
+    insert_maskY = mask(alignmentY, [[0], [1]])
+    match_maskX = mask(alignmentX, [[1], [1]])
+    match_maskY = mask(alignmentY, [[1], [1]])
 
-    aminoacids = String(id_to_aa.(Y[1, :]))
+    aminoacids = String(id_to_aa.(get_coord(p, "aminoacid")))
 
     torsion_angles = Matrix{Real}(undef, 3, n)
-    torsion_angles[1, 2:end] = Y[3, 1:(end-1)]      # ψ
-    torsion_angles[3, 2:end] = Y[2, 2:end]          # ϕ
-    torsion_angles[2, indicesIY] .= rand(Normal(ideal_omega_angle...), length(indicesIY))
-    torsion_angles[2, indicesMY] .= omegaangles(chain, standardselector)[indicesMX]
+    dihedrals = get_coord(p, "ramachadran angles")
+    torsion_angles[1, 2:end] = dihedrals[2, 1:(end-1)]      # ψ
+    torsion_angles[3, 2:end] = dihedrals[1, 2:end]          # ϕ
+    torsion_angles[2, insert_maskY] .= rand(Normal(ideal_omega_angle...), count(insert_maskY))
+    torsion_angles[2, match_maskY] .= omegaangles(chain, standardselector)[match_maskX]
 
     bond_angles_X, bond_lengths_X = backbone_bond_angles_and_lengths(chain)
 
     #TODO write this more succintly
     bond_angles = Matrix{Real}(undef, 3, n)
-    for i in indicesIY
+    for i in collect(1:n)[insert_maskY]
         bond_angles[1, i] = rand(WrappedNormal(ideal_bond_angle["CA-C-N", aminoacids[i]]...))[1]
         bond_angles[2, i] = rand(WrappedNormal(ideal_bond_angle["C-N-CA", aminoacids[i]]...))[1]
         bond_angles[3, i] = rand(WrappedNormal(ideal_bond_angle["N-CA-C", aminoacids[i]]...))[1]
     end
-    bond_angles[:, indicesMY] .= bond_angles_X[:, indicesMX]
+    bond_angles[:, match_maskY] .= bond_angles_X[:, match_maskX]
 
     bond_lengths = Matrix{Real}(undef, 3, n)
-    for i in indicesIY
+    for i in collect(1:n)[insert_maskY]
         bond_lengths[1, i] = abs(rand(Normal(ideal_bond_length["C-N",  aminoacids[i]]...)))
         bond_lengths[2, i] = abs(rand(Normal(ideal_bond_length["N-CA", aminoacids[i]]...)))
         bond_lengths[3, i] = abs(rand(Normal(ideal_bond_length["CA-C", aminoacids[i]]...)))
     end
-    bond_lengths[:, indicesMY] .= bond_lengths_X[:, indicesMX]
+    bond_lengths[:, match_maskY] .= bond_lengths_X[:, match_maskX]
 
     return build_chain_from_internals("Y", aminoacids, torsion_angles, bond_angles, bond_lengths)
 end

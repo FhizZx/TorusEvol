@@ -100,7 +100,8 @@ export
     # distributions/EvolHMM.jl
     PairDataHMM,
     forward!,
-    backward_sampling
+    backward_sampling,
+    _logpdf
 
 
 
