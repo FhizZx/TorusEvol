@@ -7,6 +7,4 @@ const WAG_S = LowerTriangular(map((x) -> x=="" ? 0.0 : x,
 
 const WAG_Π = normalize!(vec(readdlm("./data/params/WAG_PI.csv")), 1)
 
-
-
-const WAG_SubstitutionProcess = SubstitutionProcess(WAG_S, WAG_Π);
+WAG_SubstitutionProcess(Π=WAG_Π) = SubstitutionProcess(WAG_S, Π);

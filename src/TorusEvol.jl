@@ -79,6 +79,7 @@ export
     # distributions/WrappedDiffusion
     WrappedDiffusion,
     WrappedDiffusionNode,
+    recenter,
 
     # distributions/JumpingProcess
     JumpingProcess,
@@ -101,6 +102,8 @@ export
     PairDataHMM,
     forward!,
     backward_sampling,
+    forward_anc,
+    backward_sampling_anc,
     _logpdf
 
 

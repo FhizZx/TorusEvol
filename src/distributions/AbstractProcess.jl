@@ -60,6 +60,7 @@ function fulllogpdf!(r::AbstractMatrix{<:Real}, p::AbstractProcess{D}, t::Real,
                      Y::AbstractVecOrMat) where D <: Distribution
     n = size(X, 2)
     m = size(Y, 2)
+    r[n+1, m+1] = 0
     @views jointlogpdf!(r[1:n, 1:m], p, t, X, Y)
     @views statlogpdf!(r[1:n, m+1], p, X)
     @views statlogpdf!(r[n+1, 1:m], p, Y)

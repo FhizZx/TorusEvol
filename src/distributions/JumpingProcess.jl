@@ -108,7 +108,7 @@ end
 _logpdf(d::JumpingProcessNode, x::AbstractVector{<: Real}) = _logpdf!(Array{Real}(undef, 1), d, x)[1]
 
 function _logpdf!(r::AbstractArray{<: Real},
-                  d::JumpingProcessNode, X::AbstractMatrix{<: Real})
+                  d::JumpingProcessNode, X::AbstractVecOrMat{<: Real})
     r .= logaddexp.(d.lp .+ logpdf(d.statdist, X),
                     d.lnp .+ logpdf(d.raw_transdist, X))
     return r

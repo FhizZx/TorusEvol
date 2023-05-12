@@ -27,17 +27,17 @@ function _rand!(rng::AbstractRNG, d::PairDataHMM, A::AbstractMatrix{<:Real})
 end
 
 # lℙ[X, Y | params]
-function _logpdf(d::PairDataHMM, emission_lps::AbstractMatrix{<:Real}; optimized=false)
+function _logpdf(d::PairDataHMM, emission_lps::AbstractMatrix{<:Real})
     #@info "good"
     α = d.α
     model = d.model
-    logp = forward!(α, model, emission_lps; optimized=optimized)
+    logp = forward!(α, model, emission_lps)
     return logp
 end
 
-# α[state, indices] = ℙ[joint data up to indices, state = last state in HMM]
+# α[state, indices] = lℙ[joint data up to indices, state = last state in HMM]
 function forward!(α::AbstractArray{<:Real}, model::TKF92,
-                  emission_lps::AbstractArray{<:Real}; optimized=false)
+                  emission_lps::AbstractArray{<:Real})
     K = num_known_nodes(model)
 
     α = fill!(α, -Inf)
@@ -50,13 +50,8 @@ function forward!(α::AbstractArray{<:Real}, model::TKF92,
     A = transmat(model)
     # Recursion
 
-    #hack
-    T = promote_type(eltype(model), typeof(emission_lps[1, 1]))
-
-    tape = Array{T}(undef, num_states(model))
+    tape = Array{Real}(undef, num_states(model))
     tape .= -Inf
-    tmp = Vector{Float64}(undef, length(tape))
-    tmp .= -Inf
 
     curr_αind = ones(Int, K)
     prev_αind = ones(Int, K)
@@ -67,21 +62,7 @@ function forward!(α::AbstractArray{<:Real}, model::TKF92,
         if all(prev_αind .>= 1)
             obs_ind = @. ifelse(state == 1, indices, end_corner)
             tape .= A[:, s] .+ α[prev_αind..., :]
-
-            @timeit to "logsumexp α" begin
-                if optimized
-                    if T <: AbstractFloat
-                        #@info "turbo"
-                        state_lp = FastLogSumExp.vec_logsumexp_float_turbo(tape)
-                    else
-                        #@info "dual"
-                        state_lp = FastLogSumExp.vec_logsumexp_dual_reinterp!(tmp, tape)
-                    end
-                else
-                    #@info "unoptimized"
-                    state_lp = logsumexp(tape)
-                end
-            end
+            state_lp = logsumexp(tape)
             α[curr_αind..., s] = emission_lps[obs_ind...] + state_lp
         end
     end
@@ -90,6 +71,7 @@ function forward!(α::AbstractArray{<:Real}, model::TKF92,
 
     return logp
 end
+
 
 function backward_sampling(α::AbstractArray{<:Real}, model::TKF92)
 
@@ -129,5 +111,96 @@ function backward_sampling(α::AbstractArray{<:Real}, model::TKF92)
     end
     return Alignment(hcat(reverse(align_cols)...))
 end
+
+# Complete alignment over descendants by sampling aligned ancestor
+# α[state, m+1] = lℙ[data in alignment[1:m], state = last state in HMM]
+function forward_anc(alignment::Alignment, model::TKF92,
+                     emission_lps::AbstractVector{<:Real})
+    M = length(alignment)
+    @assert model.known_ancestor == false
+
+    α = Array{Real}(undef, M+1, num_states(model))
+    α .= -Inf
+    # Initial state
+    α[1, START_INDEX] = 0
+    grid = 0:M
+    end_corner = M+1
+
+    A = transmat(model)
+    # Recursion
+
+    tape = Array{Real}(undef, num_states(model))
+    tape .= -Inf
+
+    desc_values = align_state_desc_values[model.D]
+    anc_state_id = no_survivors_ancestor_id(model)
+    for m ∈ grid, s ∈ proper_state_ids(model)
+        curr_αind = 1 + m
+        # if current state only includes ancestor, we don't advance in the alignment
+        prev_αind = (s == anc_state_id) ? curr_αind : curr_αind - 1
+        if prev_αind >= 1
+            tape .= A[:, s] .+ α[prev_αind, :]
+            # only allow transitioning from states with desc_value == alignment[m-1]
+            # OR from the anc_state
+            # a bit hacky
+            tmp = tape[anc_state_id]
+            if m > 1
+                tape[desc_values .!= Ref(alignment[m-1])] .= -Inf
+            # if m == 1, need to transition from the start or from anc state
+            else
+                tape[state_ids(model) .!= START_INDEX] .= -Inf
+            end
+            tape[anc_state_id] = tmp
+
+            state_lp = logsumexp(tape)
+
+            # if ancestor only state, there was no descendant emission
+            emission_lp = (s == anc_state_id) ? 0 : emission_lps[m]
+
+            α[curr_αind..., s] = emission_lp + state_lp
+        end
+    end
+    return α
+end
+
+function backward_sampling_anc(α::AbstractVector{<:Real}, model::TKF92)
+    @assert model.known_ancestor == false
+    end_corner = M+1
+    A = transmat(model)
+
+    # the log probability of doing a backstep to a state from current state
+    lps = Array{Real}(undef, num_states(model))
+
+    # first, step back from the END state
+    lps .= A[:, END_INDEX] .+ α[end_corner, :]
+    lps .-= logsumexp(lps)
+
+    s = rand(Categorical(exp.(lps)))
+    curr_αind = end_corner
+    align_cols = Domino[]
+    anc_state_id = no_survivors_ancestor_id(model)
+    # keep doing back steps until the START state is reached
+    while s != START_INDEX
+        col = state_align_cols(model)[s]
+        # as ancestor unknown, cannot keep track of index
+        if s == anc_state_id
+            l = 1 + rand(Geometric(1 - model.full_del_rate))
+            append!(align_cols, fill(col, l))
+        else
+            push!(align_cols, col)
+        end
+
+        # probabilistic backtracking through α
+        prev_αind = (s == anc_state_id) ? curr_αind : (curr_αind - 1)
+        lps .= A[:, s] .+ α[prev_αind, :] .- α[curr_αind, s]
+        lps .-= logsumexp(lps)
+        curr_αind = prev_αind
+
+        s = rand(Categorical(exp.(lps)))
+    end
+    return Alignment(hcat(reverse(align_cols)...))
+end
+
+
 
 #todo - sample full alignment from partial alignment
