@@ -163,7 +163,8 @@ function forward_anc(alignment::Alignment, model::TKF92,
     return α
 end
 
-function backward_sampling_anc(α::AbstractVector{<:Real}, model::TKF92)
+function backward_sampling_anc(α::AbstractMatrix{<:Real}, model::TKF92)
+    M = size(α, 1) - 1
     @assert model.known_ancestor == false
     end_corner = M+1
     A = transmat(model)

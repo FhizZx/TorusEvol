@@ -56,14 +56,12 @@ struct WrappedNormal <: ContinuousMultivariateDistribution
 end
 
 
-# __________________________________________________________________________________________
-# Constructors & Getters
-
-# TODO - fiddle with the constants r, R and see if a large lattice is necessary
+# # __________________________________________________________________________________________
+# # Constructors & Getters
 
 # 𝛷 = N(μ, Σ)
 # 𝕃 = 2π[-r,r]ᵈ ∩ B(𝛷, R) (in sqmahal distance)
-function WrappedNormal(μ::AbstractVector{T}, Σ::AbstractPDMat{T}) where T <: Real
+function WrappedNormal(μ::AbstractVector{<:Real}, Σ)
     𝛷 = MvNormal(cmod(μ), Σ)
     #R = 10.0
     #r = ceil(Int, R * 1.5)
@@ -75,21 +73,21 @@ function WrappedNormal(μ::AbstractVector{T}, Σ::AbstractPDMat{T}) where T <: R
     WrappedNormal(𝛷, 𝕃)
 end
 
-# Make μ and Σ have the same element type
-function WrappedNormal(μ::AbstractVector{<:Real}, Σ::AbstractPDMat{<:Real})
-    Rtype = Base.promote_eltype(μ, Σ)
-    WrappedNormal(convert(AbstractArray{Rtype}, μ), convert(AbstractArray{Rtype}, Σ))
-end
+# # Make μ and Σ have the same element type
+# function WrappedNormal(μ::AbstractVector{<:Real}, Σ::AbstractPDMat{<:Real})
+#     Rtype = Base.promote_eltype(μ, Σ)
+#     WrappedNormal(convert(AbstractArray{Rtype}, μ), convert(AbstractArray{Rtype}, Σ))
+# end
 
-# Ensure Σ positive definite
-function WrappedNormal(μ::AbstractVector{<:Real}, Σ::AbstractMatrix{<:Real})
-    # will throw an error if Σ is not positive definite
-    WrappedNormal(μ, PDMat(Σ))
-end
+# # Ensure Σ positive definite
+# function WrappedNormal(μ::AbstractVector{<:Real}, Σ::AbstractMatrix{<:Real})
+#     # will throw an error if Σ is not positive definite
+#     WrappedNormal(μ, PDMat(Σ))
+# end
 
-function WrappedNormal(μ::Real, Σ::Real)
-    WrappedNormal([μ], [Σ;;])
-end
+# function WrappedNormal(μ::Real, Σ::Real)
+#     WrappedNormal([μ], [Σ;;])
+# end
 
 
 
