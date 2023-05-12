@@ -2,6 +2,11 @@ using Distributions
 
 import Distributions: logpdf
 
+struct InterpolatedDist <: ContinuousMultivariateDistribution
+
+end
+
+
 
 # Fix for categorical logpdf
 Distributions.logpdf(d::Categorical, x::AbstractArray{<:Real}) = logpdf.(d, x)
