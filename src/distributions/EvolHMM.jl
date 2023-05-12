@@ -55,7 +55,7 @@ function forward!(α::AbstractArray{<:Real}, model::TKF92,
 
     curr_αind = ones(Int, K)
     prev_αind = ones(Int, K)
-    for indices ∈ grid, s ∈ proper_state_ids(model)
+    for indices ∈ grid, s ∈ reverse(proper_state_ids(model))
         state = state_values(model)[s]
         curr_αind .= 1 .+ indices
         prev_αind .= curr_αind .- state
@@ -134,23 +134,23 @@ function forward_anc(alignment::Alignment, model::TKF92,
 
     desc_values = align_state_desc_values[model.D]
     anc_state_id = no_survivors_ancestor_id(model)
-    for m ∈ grid, s ∈ proper_state_ids(model)
+    for m ∈ grid, s ∈ reverse(proper_state_ids(model))
         curr_αind = 1 + m
         # if current state only includes ancestor, we don't advance in the alignment
         prev_αind = (s == anc_state_id) ? curr_αind : curr_αind - 1
-        if prev_αind >= 1
+        if prev_αind >= 1 && (s == anc_state_id || desc_values[s] == alignment[m])
             tape .= A[:, s] .+ α[prev_αind, :]
-            # only allow transitioning from states with desc_value == alignment[m-1]
-            # OR from the anc_state
-            # a bit hacky
-            tmp = tape[anc_state_id]
-            if m > 1
-                tape[desc_values .!= Ref(alignment[m-1])] .= -Inf
-            # if m == 1, need to transition from the start or from anc state
-            else
-                tape[state_ids(model) .!= START_INDEX] .= -Inf
-            end
-            tape[anc_state_id] = tmp
+            # # only allow transitioning from states with desc_value == alignment[m-1]
+            # # OR from the anc_state
+            # # a bit hacky
+            # tmp = tape[anc_state_id]
+            # if m > 1
+            #     tape[desc_values .!= Ref(alignment[m-1])] .= -Inf
+            # # if m == 1, need to transition from the start or from anc state
+            # else
+            #     tape[state_ids(model) .!= START_INDEX] .= -Inf
+            # end
+            # tape[anc_state_id] = tmp
 
             state_lp = logsumexp(tape)
 
