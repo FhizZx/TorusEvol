@@ -18,7 +18,6 @@ function Distributions.logpdf!(r::AbstractArray{<:Real}, d::Categorical, x::Abst
     return r
 end
 
-
 function Distributions.logpdf(d::ContinuousMultivariateDistribution, X::AbstractMatrix{<: Real})
     r = Array{Float64}(undef, size(X, 2))
     r .= -Inf

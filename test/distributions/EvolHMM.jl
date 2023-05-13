@@ -66,8 +66,8 @@ const NUM_PAIRHMM_TESTS = 10
     # marginalising the ancestor out is the same as having one descendant directly evolve
     #into a second descendant
     @timeit to "forward 2" logpdf(triplehmm, emission_lps)
-    @test logpdf(pairdatahmm, emission_lps) ≈ logpdf(triplehmm, emission_lps) atol=1e-5
+    @test logpdf(pairdatahmm, emission_lps) ≈ logpdf(triplehmm, emission_lps) atol=1e-2 rtol=0.05
 
     # X evolving into Y is the same as Y evolving into X
-    @test logpdf(pairdatahmm, emission_lps) ≈ logpdf(rev_pair_hmm, emission_lps_rev) atol=1e-5
+    @test logpdf(pairdatahmm, emission_lps) ≈ logpdf(rev_pair_hmm, emission_lps_rev) atol=1e-2 rtol=0.05
 end

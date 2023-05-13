@@ -40,7 +40,7 @@ function forward!(α::AbstractArray{<:Real}, model::TKF92,
                   emission_lps::AbstractArray{<:Real})
     K = num_known_nodes(model)
 
-    α = fill!(α, -Inf)
+    α .= -Inf
     # Initial state
     α[ones(Int, K)..., START_INDEX] = 0
     axs = [a .- 1 for a ∈ axes(emission_lps)]

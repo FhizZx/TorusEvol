@@ -260,7 +260,7 @@ function Distributions._logpdf!(r::AbstractArray{<:Real},
         tape = similar(r)
         tape .= -Inf
         for i ∈ eachindex(d.driftdists)
-            @timeit to "logpdf wn drift" _logpdf!(tape, d.driftdists[i], cmod(X))
+            @timeit to "logpdf wn drift" tape .= _logpdf!(tape, d.driftdists[i], cmod(X))
             @timeit to "logaddexp wrapped diff node" r .= logaddexp.(r, tape .+ log(pdf(d.winddist)[i]))
         end
         #@timeit to "logsumexp wrapped diff node" logsumexp!(r, logpdf.(d.driftdists, Ref(cmod(X))) .+ log.(pdf(d.winddist)))
