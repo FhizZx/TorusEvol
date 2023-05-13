@@ -37,8 +37,11 @@ function jointlogpdf!(r::AbstractMatrix{<:Real}, p::AbstractProcess{D}, t::Real,
 
     # Add to each column the log transition density from Y to X
     for j ∈ 1:m
-        r[:, j] .= @views logpdf(transdists[j], X) .+ logpdf(statdist(p), Y[:, j])
+        #r[:, j] .= @views logpdf(transdists[j], X) .+ logpdf(statdist(p), Y[:, j])
+        @views logpdf!(r[:, j], transdists[j], X)
+        #r[:, j] .+= logpdf(statdist(p), Y[:, j])
     end
+    r .+= logpdf(statdist(p), Y)'
     return r
 end
 

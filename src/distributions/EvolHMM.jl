@@ -14,7 +14,7 @@ struct PairDataHMM <: ContinuousMatrixDistribution
 end
 
 function PairDataHMM(model::TKF92, N_X::Integer, N_Y::Integer)
-    α = Array{Real}(undef, N_X + 1, N_Y + 1, num_states(model))
+    α = Array{Float64}(undef, N_X + 1, N_Y + 1, num_states(model))
     return PairDataHMM(model, α, N_X, N_Y)
 end
 
@@ -50,7 +50,7 @@ function forward!(α::AbstractArray{<:Real}, model::TKF92,
     A = transmat(model)
     # Recursion
 
-    tape = Array{Real}(undef, num_states(model))
+    tape = similar(α, num_states(model))
     tape .= -Inf
 
     curr_αind = ones(Int, K)
@@ -79,7 +79,7 @@ function backward_sampling(α::AbstractArray{<:Real}, model::TKF92)
     A = transmat(model)
 
     # the log probability of doing a backstep to a state from current state
-    lps = Array{Real}(undef, num_states(model))
+    lps = similar(α, num_states(model))
 
     # first, step back from the END state
     lps .= A[:, END_INDEX] .+ α[end_corner..., :]
@@ -119,7 +119,7 @@ function forward_anc(alignment::Alignment, model::TKF92,
     M = length(alignment)
     @assert model.known_ancestor == false
 
-    α = Array{Real}(undef, M+1, num_states(model))
+    α = similar(emission_lps, M+1, num_states(model))
     α .= -Inf
     # Initial state
     α[1, START_INDEX] = 0
@@ -129,7 +129,7 @@ function forward_anc(alignment::Alignment, model::TKF92,
     A = transmat(model)
     # Recursion
 
-    tape = Array{Real}(undef, num_states(model))
+    tape = similar(α, num_states(model))
     tape .= -Inf
 
     desc_values = align_state_desc_values[model.D]
@@ -170,7 +170,7 @@ function backward_sampling_anc(α::AbstractMatrix{<:Real}, model::TKF92)
     A = transmat(model)
 
     # the log probability of doing a backstep to a state from current state
-    lps = Array{Real}(undef, num_states(model))
+    lps = similar(α, num_states(model))
 
     # first, step back from the END state
     lps .= A[:, END_INDEX] .+ α[end_corner, :]

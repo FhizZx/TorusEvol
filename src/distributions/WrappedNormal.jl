@@ -122,7 +122,7 @@ end
 
 #optimized
 function _logpdf!(r::AbstractArray{<: Real},
-                  wn::WrappedNormal, X::AbstractMatrix{<: Real})
+                  wn::WrappedNormal, X::AbstractVecOrMat{<: Real})
     shifted_X = cmod.(X)
 
     tape = Array{Real}(undef, length(r), 2)

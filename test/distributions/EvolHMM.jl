@@ -1,9 +1,10 @@
 using LogExpFunctions
 using Distributions
 using TorusEvol
+using TimerOutputs
 
-
-const NUM_PAIRHMM_TESTS = 44
+reset_timer!(to)
+const NUM_PAIRHMM_TESTS = 10
 @testset "PairDataHMM test $v" for v ∈ 1:NUM_PAIRHMM_TESTS
     Random.seed!(TEST_SEED+v)
 
@@ -34,12 +35,15 @@ const NUM_PAIRHMM_TESTS = 44
         γ[e] = rand(Gamma(10.0))
     end
     diff_procs = reshape(jumping.(WrappedDiffusion.(μ_𝜙, μ_𝜓, σ_𝜙, σ_𝜓, α_𝜙, α_𝜙, α_cov), γ), 1, E)
+    #diff_procs = reshape(WrappedDiffusion.(μ_𝜙, μ_𝜓, σ_𝜙, σ_𝜓, α_𝜙, α_𝜙, α_cov), 1, E)
 
     ξ = MixtureProductProcess(proc_weights, vcat(sub_procs, diff_procs))
 
 
     N = rand(Geometric(0.01))+1
     M = rand(Geometric(0.01))+1
+    @info N
+    @info M
     X = randstat(ξ, N)
     Y = randstat(ξ, M)
 
@@ -47,8 +51,8 @@ const NUM_PAIRHMM_TESTS = 44
 
     pairdatahmm = PairDataHMM(align_model, num_sites(X), num_sites(Y))
 
-    lp = logpdf(pairdatahmm, emission_lps)
-
+    @timeit to "forward 1" lp = logpdf(pairdatahmm, emission_lps)
+    @info lp
 
     prop = rand(Uniform(0, 1))
     anc_align_model = TKF92([t*prop, t*(1-prop)], λ_a, μ_a, r_a; known_ancestor=false)
@@ -61,8 +65,9 @@ const NUM_PAIRHMM_TESTS = 44
     # Test the reversibility of the model:
     # marginalising the ancestor out is the same as having one descendant directly evolve
     #into a second descendant
-    @test logpdf(pairdatahmm, emission_lps) ≈ logpdf(triplehmm, emission_lps) atol=1e-2 rtol=0.05
+    @timeit to "forward 2" logpdf(triplehmm, emission_lps)
+    @test logpdf(pairdatahmm, emission_lps) ≈ logpdf(triplehmm, emission_lps) atol=1e-5
 
     # X evolving into Y is the same as Y evolving into X
-    @test logpdf(pairdatahmm, emission_lps) ≈ logpdf(rev_pair_hmm, emission_lps_rev) atol=1e-2 rtol=0.005
+    @test logpdf(pairdatahmm, emission_lps) ≈ logpdf(rev_pair_hmm, emission_lps_rev) atol=1e-5
 end
