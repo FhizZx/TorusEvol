@@ -125,7 +125,7 @@ function _logpdf!(r::AbstractArray{<: Real},
                   wn::WrappedNormal, X::AbstractVecOrMat{<: Real})
     shifted_X = cmod.(X)
 
-    tape = Array{Real}(undef, length(r), 2)
+    tape = similar(r, length(r), 2)
     tape .= -Inf
     r = @view tape[:, 1]
     shifted_logp = @view tape[:, 2]
@@ -139,7 +139,7 @@ function _logpdf!(r::AbstractArray{<: Real},
         #r .= logsumexp(tape; dims=2)
         #todo - use fastlogsumexp
 
-        @timeit to "lp normal" shifted_logp .= logpdf(wn.𝛷, shifted_X)
+        @timeit to "lp normal" logpdf!(shifted_logp, wn.𝛷, shifted_X)
         r .= logaddexp.(r, shifted_logp)
     end
     copy(r)

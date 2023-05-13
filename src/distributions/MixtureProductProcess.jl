@@ -54,7 +54,7 @@ function fulllogpdf(p::MixtureProductProcess, t::Real,
                     Y::ObservedData)
     n = num_sites(X)
     m = num_sites(Y)
-    r = Array{Real}(undef, num_sites(X)+1, num_sites(Y)+1)
+    r = Array{Float64}(undef, num_sites(X)+1, num_sites(Y)+1)
     r .= -Inf
     r[n+1, m+1] = 0
     @views jointlogpdf!(r[1:n, 1:m], p, t, X, Y)

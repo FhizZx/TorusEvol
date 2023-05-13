@@ -20,7 +20,7 @@ end
 
 
 function Distributions.logpdf(d::ContinuousMultivariateDistribution, X::AbstractMatrix{<: Real})
-    r = Array{Real}(undef, size(X, 2))
+    r = Array{Float64}(undef, size(X, 2))
     r .= -Inf
     return logpdf!(r, d, X)
 end

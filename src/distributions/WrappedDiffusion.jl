@@ -257,7 +257,7 @@ function Distributions._logpdf!(r::AbstractArray{<:Real},
         #                dims=1).
         #todo optimize this as well
         r .= -Inf
-        tape = Array{Real}(undef, length(r))
+        tape = similar(r)
         tape .= -Inf
         for i ∈ eachindex(d.driftdists)
             @timeit to "logpdf wn drift" _logpdf!(tape, d.driftdists[i], cmod(X))

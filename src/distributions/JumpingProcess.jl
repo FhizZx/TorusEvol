@@ -47,11 +47,11 @@ function jointlogpdf!(r::AbstractMatrix{<:Real}, p::JumpingProcess{D}, t::Real,
 
     # Make each row of r into the log probability of the stationary distribution at Y
     # Add to each column the log transition density from Y to X
-    tpd = similar(r, n)
-    stX = similar(tpd)
+    tpd = similar(r, n); tpd .=-Inf
+    stX = similar(tpd); stX .=-Inf
     for j ∈ 1:m
-        tpd .= logpdf(transdists[j], X)
-        stX .= logpdf(statdist(p), X)
+        logpdf!(tpd, transdists[j], X)
+        logpdf!(stX, statdist(p), X)
         stY = logpdf(statdist(p), Y[:, j])
         r[:, j] .= stY .+ logaddexp.(lp .+ stX, lnp .+ tpd)
     end
