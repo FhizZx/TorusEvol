@@ -23,7 +23,7 @@ calpha_coords(chain::Chain) = coordarray(chain, calphaselector)
 # Each column of data represents the internal coordinates of a residue
 # The data in each row is specific by row_names
 struct Polypeptide
-    data::ObservedData
+    data::ObservedChain
     row_names::AbstractVector{String}
     rows::Dict{String, Integer}
     chain::BioStructures.Chain
@@ -42,7 +42,7 @@ function Polypeptide(chain::Chain; primary=true, ramachandran=true,
 
     rows = Dict([(row_names[i], i) for i ∈ eachindex(row_names)])
 
-    return Polypeptide(ObservedData(feats), row_names, rows, chain)
+    return Polypeptide(ObservedChain(feats), row_names, rows, chain)
 end
 
 function from_pdb(id::String, chain_id::String; primary=true, ramachandran=true,

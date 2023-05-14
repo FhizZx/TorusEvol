@@ -29,8 +29,8 @@ num_coords(m::MixtureProductProcess) = size(m.processes, 1)
 num_regimes(m::MixtureProductProcess) = size(m.processes, 2)
 
 # function fulllogpdf(p::MixtureProductProcess, t::Real,
-#                     X::ObservedData,
-#                     Y::ObservedData)
+#                     X::ObservedChain,
+#                     Y::ObservedChain)
 #     r = Matrix{Real}(num_)
 #     fulllogpdf!(r, p, t, X, Y)
 #     return r
@@ -38,8 +38,8 @@ num_regimes(m::MixtureProductProcess) = size(m.processes, 2)
 
 function fulllogpdf!(r::AbstractMatrix{<:Real},
                      p::MixtureProductProcess, t::Real,
-                     X::ObservedData,
-                     Y::ObservedData)
+                     X::ObservedChain,
+                     Y::ObservedChain)
     n = num_sites(X)
     m = num_sites(Y)
     r[n+1, m+1] = 0
@@ -49,9 +49,9 @@ function fulllogpdf!(r::AbstractMatrix{<:Real},
     return r
 end
 
-function fulllogpdf(p::MixtureProductProcess, t::Real,
-                    X::ObservedData,
-                    Y::ObservedData)
+function fulljointlogpdf(p::MixtureProductProcess, t::Real,
+                         X::ObservedChain,
+                         Y::ObservedChain)
     n = num_sites(X)
     m = num_sites(Y)
     r = Array{Float64}(undef, num_sites(X)+1, num_sites(Y)+1)
@@ -65,8 +65,8 @@ end
 
 function jointlogpdf!(r::AbstractMatrix{<:Real},
                       m::MixtureProductProcess, t::Real,
-                      X::ObservedData,
-                      Y::ObservedData)
+                      X::ObservedChain,
+                      Y::ObservedChain)
     E = num_regimes(m)
     @assert num_coords(X) == num_coords(Y)
     @assert num_coords(X) == num_coords(m) string(num_coords(X)) * " " * string(num_coords(m))
@@ -95,7 +95,7 @@ end
 
 function statlogpdf!(r::AbstractVector{<:Real},
                      m::MixtureProductProcess,
-                     X::ObservedData)
+                     X::ObservedChain)
     E = num_regimes(m)
     C = num_coords(X)
     workspace = similar(r)
@@ -118,7 +118,7 @@ function statlogpdf!(r::AbstractVector{<:Real},
     return r
 end
 
-# function logpdf(ξ::MixtureProductProcess, alignment::Alignment, X::ObservedData, Y::ObservedData)
+# function logpdf(ξ::MixtureProductProcess, alignment::Alignment, X::ObservedChain, Y::ObservedChain)
 #     res = Real[]
 #     for v ∈ alignment
 #         if v == [1, 1]
@@ -141,7 +141,7 @@ function randstat(m::MixtureProductProcess, N::Integer)
         end
         push!(featsX, x)
     end
-    return ObservedData(featsX)
+    return ObservedChain(featsX)
 end
 
 function randjoint(m::MixtureProductProcess, t::Real, N::Integer)
@@ -159,7 +159,7 @@ function randjoint(m::MixtureProductProcess, t::Real, N::Integer)
         end
         push!(featsX, x); push!(featsY, y)
     end
-    return ObservedData(featsX), ObservedData(featsY)
+    return ObservedChain(featsX), ObservedChain(featsY)
 end
 
 show(io::IO, p::MixtureProductProcess) = print(io, "MixtureProductProcess(" *

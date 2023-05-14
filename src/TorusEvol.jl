@@ -21,8 +21,9 @@ export
     render,
     render_aligned,
 
-    # objects/Data
-    ObservedData,
+    # objects/Chains
+    AbstractChain,
+    ObservedChain,
     num_sites,
     num_coords,
     num_regimes,
@@ -110,7 +111,7 @@ export
 
 # Objects
 include("objects/Alignment.jl")
-include("objects/Data.jl")
+include("objects/Chains.jl")
 include("objects/Polypeptide.jl")
 
 # Models

@@ -6,7 +6,7 @@ using Memoization
 import Base: length, eltype, show
 import Distributions: _logpdf, _logpdf!, mean, _rand!
 
-# __________________________________________________________________________________________
+# ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 # Interface for abstract (continuous time) Markovian Processes
 abstract type AbstractProcess{D <: Distribution} end
 
@@ -15,6 +15,9 @@ function statdist(::AbstractProcess) end
 
 # The transition distribution at time t starting from x₀
 function transdist(::AbstractProcess, t::Real, x₀) end
+
+# The joint distribution of x and y separated by time t
+jointdist(p::AbstractProcess, t::Real) = JointDistribution(statdist(p), transdist(p, t, x))
 
 # The transition distributions at time t starting from each column of X₀
 function transdist!(r::AbstractVector, p::AbstractProcess,
@@ -32,15 +35,11 @@ function jointlogpdf!(r::AbstractMatrix{<:Real}, p::AbstractProcess{D}, t::Real,
     # Construct transition distributions for each datapoint in Y
     transdists = Array{D}(undef, m); transdist!(transdists, p, t, Y)
 
-    # Make each row of r into the log probability of the stationary distribution at Y
-    #r .= logpdf(statdist(p), Y)'
-
     # Add to each column the log transition density from Y to X
     for j ∈ 1:m
-        #r[:, j] .= @views logpdf(transdists[j], X) .+ logpdf(statdist(p), Y[:, j])
         @views logpdf!(r[:, j], transdists[j], X)
-        #r[:, j] .+= logpdf(statdist(p), Y[:, j])
     end
+    # Make each row of r into the log probability of the stationary distribution at Y
     r .+= logpdf(statdist(p), Y)'
     return r
 end
@@ -58,9 +57,9 @@ end
 # r[i, j] = lℙ[Xᵢ, Yⱼ | process p, time t]
 # r[i, m+1] = lℙ[Xᵢ | process p]
 # r[n+1, j] = lℙ[Yⱼ | process p]
-function fulllogpdf!(r::AbstractMatrix{<:Real}, p::AbstractProcess{D}, t::Real,
+function fulllogpdf!(r::AbstractMatrix{<:Real}, p::AbstractProcess, t::Real,
                      X::AbstractVecOrMat,
-                     Y::AbstractVecOrMat) where D <: Distribution
+                     Y::AbstractVecOrMat)
     n = size(X, 2)
     m = size(Y, 2)
     r[n+1, m+1] = 0
