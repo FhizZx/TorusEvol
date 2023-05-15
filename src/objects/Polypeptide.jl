@@ -10,6 +10,7 @@ phi_angles(chain::Chain) = reshape(phiangles(chain, standardselector), 1, :)
 psi_angles(chain::Chain) = reshape(psiangles(chain, standardselector), 1, :)
 function ramachandran_angles(chain::Chain)
     res = vcat(phi_angles(chain), psi_angles(chain))
+    res[isnan.(res)] .= 0.0
     res
 end
 omega_angles(chain::Chain) = reshape(omegaangles(chain, standardselector), 1, :)
@@ -77,7 +78,7 @@ function render(p::Polypeptide)
 end
 
 # Superimpose the given Polypeptide chains onto one another and render them together
-function render_aligned(ps...)
+function render(ps...; aligned=true)
     chains = chain.(collect(ps))
 
     model = Model()
@@ -88,7 +89,9 @@ function render_aligned(ps...)
 
     for i ∈ eachindex(chains)[2:end]
         ch = chains[i]
-        superimpose!(ch, ref)
+        if aligned
+            superimpose!(ch, ref)
+        end
         new_chains[i] = Chain(string(i), ch.res_list, ch.residues, model)
     end
     merge!(model.chains, Dict([(string(i), new_chains[i]) for i ∈ eachindex(new_chains)]))

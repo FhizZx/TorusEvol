@@ -49,7 +49,7 @@ function fulllogpdf!(r::AbstractMatrix{<:Real},
     return r
 end
 
-function fulljointlogpdf(p::MixtureProductProcess, t::Real,
+@memoize function fulljointlogpdf(p::MixtureProductProcess, t::Real,
                          X::ObservedChain,
                          Y::ObservedChain)
     n = num_sites(X)

@@ -23,7 +23,6 @@ export
     data,
     chain,
     render,
-    render_aligned,
     from_primary_dihedrals,
 
     # objects/Chains
@@ -104,6 +103,7 @@ export
     rate,
     raw_process,
     jumping,
+    JumpingWrappedDiffusion,
 
     # distributions/CTMC.jl
     CTMC,

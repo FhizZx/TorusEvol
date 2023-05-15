@@ -36,7 +36,10 @@ function _rand!(rng::AbstractRNG, d::AlignmentDistribution,
     P = exp.(transmat(model))
 
     length = max_length + 1
-    while length > max_length
+    seq_lengths = fill(0, size(d, 1))
+
+    # reject samples which exceed match length or ones which have null sequences
+    while length > max_length || any(seq_lengths .< 3)
         i = 1
         s = START_INDEX
         while s != END_INDEX
@@ -53,6 +56,7 @@ function _rand!(rng::AbstractRNG, d::AlignmentDistribution,
             end
         end
         length = i-1
+        seq_lengths = [count(M[j, 1:length] .== 1) for j ∈ eachindex(seq_lengths)]
     end
     M[:, (length+1):end] .= 0
 
