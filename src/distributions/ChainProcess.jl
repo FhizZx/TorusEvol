@@ -81,9 +81,7 @@ function rand(d::ChainJointDistribution)
     # sample pair alignment
     #TODO - better max length
     M_XY = Alignment(rand(AlignmentDistribution(τ, 1000)))
-    @info M_XY
     alignmentX = slice(M_XY, mask(M_XY, [[1], [0,1]]))
-    @info alignmentX
     XY_maskX = mask(alignmentX, [[1], [1]])
     X_maskX = mask(alignmentX, [[1], [0]])
     alignmentY = slice(M_XY, mask(M_XY, [[0,1], [1]]))

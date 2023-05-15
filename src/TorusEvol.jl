@@ -11,6 +11,10 @@ const to = TimerOutput()
 export
     to,
 
+    # utils/Backbone
+    build_biochain_from_aminoacids_dihedrals,
+    #build_chain_from_alignment,
+
     # objects/Polypeptide
     Polypeptide,
     from_pdb,
@@ -20,6 +24,7 @@ export
     chain,
     render,
     render_aligned,
+    from_primary_dihedrals,
 
     # objects/Chains
     AbstractChain,
@@ -122,6 +127,7 @@ export
 
 # Objects
 include("objects/Alignment.jl")
+include("objects/Backbone.jl")
 include("objects/Chains.jl")
 include("objects/Polypeptide.jl")
 

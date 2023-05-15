@@ -4,6 +4,16 @@ using DataStructures
 using LinearAlgebra
 using Rotations
 
+const BioChain = BioStructures.Chain
+
+
+aminoacids = "ARNDCQEGHILKMFPSTWYV"
+id_to_aa(i) = aminoacids[i]
+num_aa = length(aminoacids)
+
+aminoacid_ids = Dict((aminoacids[i], i) for i ∈ eachindex(aminoacids))
+aa_to_id(a) = aminoacid_ids[a]
+
 one_to_three = Dict('A' => "ALA", 'C' => "CYS", 'D' => "ASP", 'E' => "GLU", 'F' => "PHE",
                     'G' => "GLY", 'H' => "HIS", 'I' => "ILE", 'L' => "LEU", 'K' => "LYS",
                     'M' => "MET", 'N' => "ASN", 'P' => "PRO", 'Q' => "GLN", 'R' => "ARG",
@@ -44,7 +54,7 @@ end
 # cis peptide bonds are rare and mostly occur in proline
 ideal_omega_angle = rad2deg.((179.6, 5.9))
 
-function backbone_bond_angles_and_lengths(chain::Chain)
+function backbone_bond_angles_and_lengths(chain::BioChain)
     residues = collectresidues(chain, standardselector)
     n = length(residues)
     bond_angles = Matrix{Float64}(undef, 3, n)
@@ -65,7 +75,7 @@ function backbone_bond_angles_and_lengths(chain::Chain)
 end
 
 
-function Residue(name::AbstractString, number::Integer, ch::Chain)
+function Residue(name::AbstractString, number::Integer, ch::BioChain)
     return BioStructures.Residue(name, number, ' ', false, ch)
 end
 
@@ -74,16 +84,44 @@ function Atom(serial::Int, name::String, coords::Vector{Float64},
     return BioStructures.Atom(serial, name, ' ', coords, 1.0, 13.0, element, "  ", residue)
 end
 
-function build_chain_from_alignment(chain::Chain,
-                                    alignment::Alignment,
-                                    Y::ObservedChain)
+function build_biochain_from_aminoacids_dihedrals(aminoacid_ids::AbstractArray{<:Integer},
+                                                  dihedrals::AbstractMatrix{<:Real};
+                                                  id="X")
+    aminoacids = String(id_to_aa.(vec(aminoacid_ids)))
+    N = length(aminoacids)
+
+    @assert N == size(dihedrals, 2)
+    torsion_angles = Matrix{Float64}(undef, 3, N)
+    torsion_angles[1, 2:end] = dihedrals[2, 1:(end-1)]             # ψ
+    torsion_angles[3, 2:end] = dihedrals[1, 2:end]                 # ϕ
+    torsion_angles[2, :] .= rand(Normal(ideal_omega_angle...), N)  # ω
+
+    bond_angles = Matrix{Float64}(undef, 3, N)
+    for i in 1:N
+        bond_angles[1, i] = rand(WrappedNormal(ideal_bond_angle["CA-C-N", aminoacids[i]]...))[1]
+        bond_angles[2, i] = rand(WrappedNormal(ideal_bond_angle["C-N-CA", aminoacids[i]]...))[1]
+        bond_angles[3, i] = rand(WrappedNormal(ideal_bond_angle["N-CA-C", aminoacids[i]]...))[1]
+    end
+
+    bond_lengths = Matrix{Float64}(undef, 3, N)
+    for i in 1:N
+        bond_lengths[1, i] = abs(rand(Normal(ideal_bond_length["C-N",  aminoacids[i]]...)))
+        bond_lengths[2, i] = abs(rand(Normal(ideal_bond_length["N-CA", aminoacids[i]]...)))
+        bond_lengths[3, i] = abs(rand(Normal(ideal_bond_length["CA-C", aminoacids[i]]...)))
+    end
+
+    return build_chain_from_internals(id, aminoacids, torsion_angles, bond_angles, bond_lengths)
+end
+
+function build_biochain_from_alignment(chain::BioChain,
+                                       alignment::Alignment)
     maskX = mask(alignment, [[1], [0,1]])
     maskY = mask(alignment, [[0,1], [1]])
 
-    n = count(maskY)
+    N = count(maskY)
 
-    alignmentX = alignment[maskX]
-    alignmentY = alignment[maskY]
+    alignmentX = slice(alignment, maskX)
+    alignmentY = slice(alignment, maskY)
     insert_maskY = mask(alignmentY, [[0], [1]])
     match_maskX = mask(alignmentX, [[1], [1]])
     match_maskY = mask(alignmentY, [[1], [1]])
@@ -120,9 +158,9 @@ function build_chain_from_alignment(chain::Chain,
 end
 
 function build_chain_from_internals(id::String, aminoacids::String,
-                                    torsion_angles::Matrix{Real}, # ψ       ω       ϕ
-                                    bond_angles::Matrix{Real},    # CA-C-N  C-N-CA  N-CA-C
-                                    bond_lengths::Matrix{Real})   # C-N     N-CA    CA-C
+                                    torsion_angles::Matrix{<:Real}, # ψ       ω       ϕ
+                                    bond_angles::Matrix{<:Real},    # CA-C-N  C-N-CA  N-CA-C
+                                    bond_lengths::Matrix{<:Real})   # C-N     N-CA    CA-C
     n = length(aminoacids)
     chain = Chain(id)
     chain.res_list = string.(1:n)

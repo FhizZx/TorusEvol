@@ -2,18 +2,16 @@ using BioSequences
 using BioStructures
 using Bio3DView
 
-aminoacids = "ARNDCQEGHILKMFPSTWYV"
-id_to_aa(i) = aminoacids[i]
-num_aa = length(aminoacids)
 
-aminoacid_ids = Dict((aminoacids[i], i) for i ∈ eachindex(aminoacids))
-aa_to_id(a) = aminoacid_ids[a]
 
 # Methods to extract internal coordinates data from BioStructures.Chain object
 aa_sequence(chain::Chain) = reshape(aa_to_id.(collect(string(LongAA(chain, standardselector)))), 1, :)
 phi_angles(chain::Chain) = reshape(phiangles(chain, standardselector), 1, :)
 psi_angles(chain::Chain) = reshape(psiangles(chain, standardselector), 1, :)
-ramachandran_angles(chain::Chain) = vcat(phi_angles(chain), psi_angles(chain))
+function ramachandran_angles(chain::Chain)
+    res = vcat(phi_angles(chain), psi_angles(chain))
+    res
+end
 omega_angles(chain::Chain) = reshape(omegaangles(chain, standardselector), 1, :)
 calpha_coords(chain::Chain) = coordarray(chain, calphaselector)
 
@@ -30,7 +28,7 @@ struct Polypeptide
 end
 
 # Construct Polypeptide from BioStructures.Chain
-function Polypeptide(chain::Chain; primary=true, ramachandran=true,
+function Polypeptide(chain::BioStructures.Chain; primary=true, ramachandran=true,
                      omega=false, cartesian=false)
     feats = Vector{AbstractArray{Real}}(undef, 0)
     row_names = []
@@ -43,6 +41,15 @@ function Polypeptide(chain::Chain; primary=true, ramachandran=true,
     rows = Dict([(row_names[i], i) for i ∈ eachindex(row_names)])
 
     return Polypeptide(ObservedChain(feats), row_names, rows, chain)
+end
+
+function from_primary_dihedrals(aminoacid_ids::AbstractArray{<:Integer},
+                                dihedrals::AbstractMatrix{<:Real};
+                                chain_id="X")
+    chain = build_biochain_from_aminoacids_dihedrals(aminoacid_ids, dihedrals; id=chain_id)
+    @assert all(aa_sequence(chain) .== aminoacid_ids)
+    @assert all((isapprox.(ramachandran_angles(chain),dihedrals; atol=1e-5))[2:end-1])
+    return Polypeptide(chain; primary=true, ramachandran=true)
 end
 
 function from_pdb(id::String, chain_id::String; primary=true, ramachandran=true,
@@ -94,5 +101,5 @@ end
 
 Base.show(io::IO, p::Polypeptide) = print(io, "Polypeptide from chain " * chainid(chain(p)) *
                                               " of protein " * structurename(chain(p)) *
-                                              " with " * string(num_residues(p)) * " residues" *
+                                              " with " * string(num_sites(p)) * " sites" *
                                               "\nand internal coordinates given by: " * string(p.row_names))

@@ -166,6 +166,14 @@ end
 # __________________________________________________________________________________________
 # Constructors
 function WrappedDiffusionNode(𝚯::WrappedDiffusion, t::Real, θ₀::AbstractVector{<:Real})
+    # hacky - idea is that if an angle is missing we want the transition
+    # distribution to be as diffuse as possible
+    if any(isnan.(θ₀))
+        driftdists = [WrappedNormal([0.0, 0.0], 5*I)]
+        return WrappedDiffusionNode(𝚯, t, θ₀, driftdists, Categorical([1.0]))
+    end
+
+
     e⁻ᵗᴬ = drift_coefficient(𝚯, t)
     μᴹₜ = cmod(mean(𝚯) .+ e⁻ᵗᴬ * (θ₀ - mean(𝚯) .+ lattice(𝚯)))
     Γₜ = Γ(𝚯, t)
@@ -189,15 +197,21 @@ function _WrappedDiffusionNodes!(r::AbstractVector, 𝚯::WrappedDiffusion,
 
     for i ∈ axes(Θ₀, 2)
         @views θ₀ = Θ₀[:, i]
-        shifted_lattice = θ₀ .+ lattice(wn)
-        μᴹₜ = cmod(mean(𝚯) .+ e⁻ᵗᴬ * (shifted_lattice .- mean(𝚯)))
+        if any(isnan.(θ₀))
+            driftdists = [WrappedNormal([0.0, 0.0], 5*I)]
 
-        normals = MvNormal.(eachcol(μᴹₜ), Ref(Γₜ))
-        driftdists = WrappedNormal.(normals, Ref(𝕃))
+            r[i] = WrappedDiffusionNode(𝚯, t, θ₀, driftdists, Categorical([1.0]))
+        else
+            shifted_lattice = θ₀ .+ lattice(wn)
+            μᴹₜ = cmod(mean(𝚯) .+ e⁻ᵗᴬ * (shifted_lattice .- mean(𝚯)))
 
-        p = exp.(logpdf(unwrapped(wn), shifted_lattice) .- logpdf(wn, θ₀))
-        winddist = Categorical(p)
-        r[i] = WrappedDiffusionNode(𝚯, t, θ₀, driftdists, winddist)
+            normals = MvNormal.(eachcol(μᴹₜ), Ref(Γₜ))
+            driftdists = WrappedNormal.(normals, Ref(𝕃))
+
+            p = exp.(logpdf(unwrapped(wn), shifted_lattice) .- logpdf(wn, θ₀))
+            winddist = Categorical(p)
+            r[i] = WrappedDiffusionNode(𝚯, t, θ₀, driftdists, winddist)
+        end
     end
     r
 end
@@ -247,23 +261,19 @@ end
 function Distributions._logpdf!(r::AbstractArray{<:Real},
                                 d::WrappedDiffusionNode, X::AbstractVecOrMat{<: Real})
     t = d.t
+    wrapped_X = cmod.(X)
 
     # if t == 0, distribution degenerates into Dirac(θ₀)
     if t < eps(typeof(t))
-        r .= map(θₜ -> d.θ₀ == θₜ ? Inf : -Inf, eachcol(cmod(X)))
+        r .= map(θₜ -> d.θ₀ == θₜ ? Inf : -Inf, eachcol(wrapped_X))
     else
-        # r .= logsumexp(logpdf.(d.driftdists, Ref(cmod(X))) .+
-        #                log.(pdf(d.winddist));
-        #                dims=1).
-        #todo optimize this as well
         r .= -Inf
         tape = similar(r)
         tape .= -Inf
         for i ∈ eachindex(d.driftdists)
-            @timeit to "logpdf wn drift" tape .= _logpdf!(tape, d.driftdists[i], cmod(X))
+            @timeit to "logpdf wn drift" tape .= _logpdf!(tape, d.driftdists[i], wrapped_X)
             @timeit to "logaddexp wrapped diff node" r .= logaddexp.(r, tape .+ log(pdf(d.winddist)[i]))
         end
-        #@timeit to "logsumexp wrapped diff node" logsumexp!(r, logpdf.(d.driftdists, Ref(cmod(X))) .+ log.(pdf(d.winddist)))
     end
 
     r

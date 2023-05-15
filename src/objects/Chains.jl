@@ -4,7 +4,7 @@ abstract type AbstractChain end
 # For each site, there are C coordinates (e.g. aminoacid types, dihedral angles)
 # the internal 'data' field stores an array for the contents of each coordinate
 struct ObservedChain <: AbstractChain
-    data::AbstractVector{AbstractArray}
+    data::AbstractVector{<:AbstractArray}
     N::Integer
 end
 

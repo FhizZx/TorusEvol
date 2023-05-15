@@ -44,8 +44,10 @@ const NUM_PAIRHMM_TESTS = 10
     M = rand(Geometric(0.01))+1
     @info N
     @info M
-    X = randstat(ξ, N)
-    Y = randstat(ξ, M)
+    featsX = randstat(ξ, N)
+    X = ObservedChain(featsX)
+    featsY = randstat(ξ, M)
+    Y = ObservedChain(featsY)
 
     emission_lps = fulljointlogpdf(ξ, t, X, Y)
 

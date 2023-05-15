@@ -85,9 +85,9 @@ end
 #     WrappedNormal(μ, PDMat(Σ))
 # end
 
-# function WrappedNormal(μ::Real, Σ::Real)
-#     WrappedNormal([μ], [Σ;;])
-# end
+function WrappedNormal(μ::Real, Σ::Real)
+    WrappedNormal([μ], [Σ;;])
+end
 
 
 
@@ -117,12 +117,20 @@ end
 
 # Log density of WN over 𝕋ᵈ
 function _logpdf(wn::WrappedNormal, x::AbstractVector{<: Real})
+    # Handling missing values
+    if any(isnan.(x))
+        return 0.0
+    end
     return logsumexp(logpdf(wn.𝛷, cmod.(x) .+ wn.𝕃))
 end
 
 #optimized
 function _logpdf!(r::AbstractArray{<: Real},
                   wn::WrappedNormal, X::AbstractVecOrMat{<: Real})
+    # Handling missing values
+    if any(isnan.(X))
+        return 0.0
+    end
     shifted_X = cmod.(X)
 
     tape = similar(r, length(r), 2)
