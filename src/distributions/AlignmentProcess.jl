@@ -15,17 +15,20 @@ end
 
 size(d::AlignmentDistribution) = (num_descendants(d.τ)+1, d.max_length)
 
-#todo - compute probability of unconditioned alignment
 function _logpdf(d::AlignmentDistribution, M::AbstractMatrix{<:Integer})
-    model = d.τ
+    τ = d.τ
     s = START_INDEX
-    A = transmat(model)
+    flags = align_state_flags[τ.D]
+    A = transmat(τ)
 
     res = 0
     i = 1
-    # while any(M[:, i] .== 1)
-
-    # end
+    while any(M[:, i] .== 1)
+        if M[1, i] == 1
+            flags =
+        res += A[s, q]
+        s = q
+    end
     return res
 end
 
