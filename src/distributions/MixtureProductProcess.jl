@@ -141,12 +141,12 @@ function randstat(m::MixtureProductProcess, N::Integer)
         end
         push!(featsX, x)
     end
-    return ObservedChain(featsX)
+    return featsX
 end
 
 function randjoint(m::MixtureProductProcess, t::Real, N::Integer)
-    sites = rand(Categorical(weights(m)), N)
-    procs = processes(m)[:, sites]
+    regimes = rand(Categorical(weights(m)), N)
+    procs = processes(m)[:, regimes]
     C = num_coords(m)
     featsX = Vector{AbstractArray{Real}}(undef, 0)
     featsY = Vector{AbstractArray{Real}}(undef, 0)
@@ -159,7 +159,7 @@ function randjoint(m::MixtureProductProcess, t::Real, N::Integer)
         end
         push!(featsX, x); push!(featsY, y)
     end
-    return ObservedChain(featsX), ObservedChain(featsY)
+    return featsX, featsY
 end
 
 show(io::IO, p::MixtureProductProcess) = print(io, "MixtureProductProcess(" *

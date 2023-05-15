@@ -76,7 +76,7 @@ end
 
 function build_chain_from_alignment(chain::Chain,
                                     alignment::Alignment,
-                                    Y::ObservedData)
+                                    Y::ObservedChain)
     maskX = mask(alignment, [[1], [0,1]])
     maskY = mask(alignment, [[0,1], [1]])
 

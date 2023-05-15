@@ -66,9 +66,20 @@ export
     jointlogpdf!,
     statlogpdf!,
     fulllogpdf!,
+    fulljointlogpdf,
     fulllogpdf,
     randjoint,
     randstat,
+
+    #distributions/AlignmentProcess
+    AlignmentDistribution,
+
+    #distributions/ChainProcess
+    ChainJointDistribution,
+    logpdf,
+    logpdfα!,
+    get_α,
+    rand,
 
     # distributions/WrappedNormal
     WrappedNormal,
@@ -120,6 +131,7 @@ include("models/TKF92.jl")
 
 # Distributions
 include("distributions/AbstractProcess.jl")
+
 include("distributions/Common.jl")
 include("distributions/WrappedNormal.jl")
 include("distributions/WrappedDiffusion.jl")
@@ -128,6 +140,9 @@ include("distributions/CTMC.jl")
 include("models/WAG.jl")
 include("distributions/MixtureProductProcess.jl")
 include("distributions/EvolHMM.jl")
+
+include("distributions/AlignmentProcess.jl")
+include("distributions/ChainProcess.jl")
 
 
 

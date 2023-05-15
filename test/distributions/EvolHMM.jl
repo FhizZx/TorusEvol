@@ -47,7 +47,7 @@ const NUM_PAIRHMM_TESTS = 10
     X = randstat(ξ, N)
     Y = randstat(ξ, M)
 
-    emission_lps = fulllogpdf(ξ, t, X, Y)
+    emission_lps = fulljointlogpdf(ξ, t, X, Y)
 
     pairdatahmm = PairDataHMM(align_model, num_sites(X), num_sites(Y))
 
@@ -59,7 +59,7 @@ const NUM_PAIRHMM_TESTS = 10
     triplehmm = PairDataHMM(anc_align_model, num_sites(X), num_sites(Y))
 
     rev_pair_hmm = PairDataHMM(align_model, num_sites(Y), num_sites(X))
-    emission_lps_rev = fulllogpdf(ξ, t, Y, X)
+    emission_lps_rev = fulljointlogpdf(ξ, t, Y, X)
 
 
     # Test the reversibility of the model:

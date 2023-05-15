@@ -39,6 +39,10 @@ function mask(a::Alignment, allowed::AbstractArray{<:Domino})
     return BitVector([all(v .∈ allowed) for v ∈ a])
 end
 
+function slice(a::Alignment, mask::BitVector)
+    Alignment(hcat(a[mask]...))
+end
+
 sequence_lengths(a::Alignment) = [count(x -> x==1, a.data[i, :]) for i ∈ 1:num_sequences(a)]
 
 function subalignment(a::Alignment, ids::AbstractVector{<:Integer}) :: Alignment
