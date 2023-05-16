@@ -69,9 +69,8 @@ export
     transdist!,
     jointlogpdf!,
     statlogpdf!,
-    fulllogpdf!,
+    fulljointlogpdf!,
     fulljointlogpdf,
-    fulllogpdf,
     randjoint,
     randstat,
 
@@ -82,7 +81,9 @@ export
     ChainJointDistribution,
     logpdf,
     logpdfα!,
+    logpdfαB!,
     get_α,
+    get_B,
     rand,
 
     # distributions/WrappedNormal

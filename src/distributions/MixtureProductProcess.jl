@@ -3,8 +3,7 @@ using LinearAlgebra
 using Memoization
 
 
-
-# __________________________________________________________________________________________
+# ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 struct MixtureProductProcess
     weights::AbstractVector{<:Real}
     processes::AbstractMatrix{<:AbstractProcess}
@@ -36,12 +35,13 @@ num_regimes(m::MixtureProductProcess) = size(m.processes, 2)
 #     return r
 # end
 
-function fulllogpdf!(r::AbstractMatrix{<:Real},
+function fulljointlogpdf!(r::AbstractMatrix{<:Real},
                      p::MixtureProductProcess, t::Real,
                      X::ObservedChain,
                      Y::ObservedChain)
     n = num_sites(X)
     m = num_sites(Y)
+    r .= -Inf
     r[n+1, m+1] = 0
     @views jointlogpdf!(r[1:n, 1:m], p, t, X, Y)
     @views statlogpdf!(r[1:n, m+1], p, X)
@@ -50,8 +50,8 @@ function fulllogpdf!(r::AbstractMatrix{<:Real},
 end
 
 @memoize function fulljointlogpdf(p::MixtureProductProcess, t::Real,
-                         X::ObservedChain,
-                         Y::ObservedChain)
+                                  X::ObservedChain,
+                                  Y::ObservedChain)
     n = num_sites(X)
     m = num_sites(Y)
     r = Array{Float64}(undef, num_sites(X)+1, num_sites(Y)+1)
