@@ -72,20 +72,22 @@ function jointlogpdf!(r::AbstractMatrix{<:Real},
     @assert num_coords(X) == num_coords(m) string(num_coords(X)) * " " * string(num_coords(m))
     C = num_coords(X)
     workspace = similar(r)
+    workspace .= -Inf
     xs = data(X)
     ys = data(Y)
 
     # Compute the contribution of each regime to the final logpdf
     r_e = similar(workspace)
+    r_e .= -Inf
 
     for e ∈ 1:E
         w = weights(m)[e]
         r_e .= log(w)
         for c ∈ 1:C
-            @timeit to "jointlogpdf" jointlogpdf!(workspace, processes(m)[c, e] , t, xs[c], ys[c])
+            jointlogpdf!(workspace, processes(m)[c, e] , t, xs[c], ys[c])
             r_e .= r_e .+ workspace
         end
-        @timeit to "logsumexp" r .= logaddexp.(r, r_e)
+        r .= logaddexp.(r, r_e)
     end
 
     return r
@@ -109,10 +111,10 @@ function statlogpdf!(r::AbstractVector{<:Real},
         w = weights(m)[e]
         r_e .= log(w)
         for c ∈ 1:C
-            @timeit to "statlogpdf" statlogpdf!(workspace, processes(m)[c, e], xs[c])
+            statlogpdf!(workspace, processes(m)[c, e], xs[c])
             r_e .= r_e .+ workspace
         end
-        @timeit to "logsumexp" r .= logaddexp.(r, r_e)
+        r .= logaddexp.(r, r_e)
     end
 
     return r

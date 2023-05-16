@@ -7,28 +7,39 @@ using Distributions
 struct AlignmentDistribution <: DiscreteMatrixDistribution
     τ::TKF92  # alignment model
     max_length::Integer
-    # function AlignmentDistribution(τ::TKF92)
-    #     max_length = τ.
-    #     new(τ, max_length)
-    # end
+    function AlignmentDistribution(τ::TKF92; max_length=3000)
+         new(τ, max_length)
+    end
 end
 
 size(d::AlignmentDistribution) = (num_descendants(d.τ)+1, d.max_length)
 
 function _logpdf(d::AlignmentDistribution, M::AbstractMatrix{<:Integer})
     τ = d.τ
+    D = num_descendants(τ)
+
     s = START_INDEX
-    flags = align_state_flags[τ.D]
+    flags = align_state_flags[D]
     A = transmat(τ)
 
     res = 0
     i = 1
-    while any(M[:, i] .== 1)
+    while any(M[:, i] .== 1) || i > size(M, 2)
+        values = M[2:end, i]
         if M[1, i] == 1
-            flags =
+            # scenario changes
+            state = gen_ancestor_state(values)
+            flags .= M[:, i]
+        else
+            # scenario hasn't changed
+            state = gen_descendant_state(values, flags)
+        end
+        q = state_ids_dict(τ)[state]
         res += A[s, q]
         s = q
+        i += 1
     end
+    res += A[s, END_INDEX]
     return res
 end
 

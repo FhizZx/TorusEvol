@@ -208,7 +208,8 @@ function _WrappedDiffusionNodes!(r::AbstractVector, 𝚯::WrappedDiffusion,
             normals = MvNormal.(eachcol(μᴹₜ), Ref(Γₜ))
             driftdists = WrappedNormal.(normals, Ref(𝕃))
 
-            p = exp.(logpdf(unwrapped(wn), shifted_lattice) .- logpdf(wn, θ₀))
+            p = logpdf(unwrapped(wn), shifted_lattice) .- logpdf(wn, θ₀)
+            p .= exp.(p .- logsumexp(p))
             winddist = Categorical(p)
             r[i] = WrappedDiffusionNode(𝚯, t, θ₀, driftdists, winddist)
         end
@@ -271,8 +272,8 @@ function Distributions._logpdf!(r::AbstractArray{<:Real},
         tape = similar(r)
         tape .= -Inf
         for i ∈ eachindex(d.driftdists)
-            @timeit to "logpdf wn drift" tape .= _logpdf!(tape, d.driftdists[i], wrapped_X)
-            @timeit to "logaddexp wrapped diff node" r .= logaddexp.(r, tape .+ log(pdf(d.winddist)[i]))
+            tape .= _logpdf!(tape, d.driftdists[i], wrapped_X)
+            r .= logaddexp.(r, tape .+ log(pdf(d.winddist)[i]))
         end
     end
 

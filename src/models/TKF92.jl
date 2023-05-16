@@ -14,6 +14,7 @@ gen_start_state(D::Integer) = [zeros(Int, D+1);ones(Int, D)]
 gen_end_state(D::Integer) = zeros(Int, 2*D+1)
 
 gen_ancestor_state(values) = [1; values; values]
+gen_descendant_state(values::Vector, flags) = [0; values; flags]
 function gen_descendant_state(d::Integer, flags)
     D = length(flags)
     [0; collect(Int, onehot(d, 1:D)); flags]

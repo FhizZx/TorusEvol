@@ -30,7 +30,7 @@ end
 function jointlogpdf!(r::AbstractMatrix{<:Real}, c::CTMC, t::Real,
                       X::AbstractVecOrMat,
                       Y::AbstractVecOrMat)
-    @timeit to "jlp ctmc" @views r .= jointlp(c, t)[vec(X), vec(Y)]
+    @views r .= jointlp(c, t)[vec(X), vec(Y)]
     return r
 end
 
@@ -45,7 +45,7 @@ end
 statdist(c::CTMC) = c.statdist
 
 function jointlp(c::CTMC, t::Real)
-    @timeit to "ctmc transmat" P = transmat(c, t)
+    P = transmat(c, t)
     return log.(P) .+ logpdf(statdist(c))
 end
 
