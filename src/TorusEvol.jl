@@ -84,6 +84,8 @@ export
     #distributions/AlignmentProcess
     AlignmentDistribution,
     ConditionedAlignmentDistribution,
+    LengthEquilibriumDistribution,
+    LED,
 
     #distributions/ChainProcess
     ChainJointDistribution,
@@ -122,6 +124,7 @@ export
 
     # distributions/MixtureProductProcess.jl
     MixtureProductProcess,
+    ProductProcess,
     weights,
     processes,
     hiddenchain_from_alignment,

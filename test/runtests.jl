@@ -14,7 +14,7 @@ const all_tests = ["distributions/WrappedNormal", "models/TKF92", "distributions
 tests = ["distributions/EvolHMM"]
 
 @testset "TorusEvol" begin
-    @testset "Test $t" for t in tests
+    @testset "Test $t" for t in all_tests
         include("$t.jl")
     end
     print(to)

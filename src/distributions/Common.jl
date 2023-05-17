@@ -6,14 +6,14 @@ import Distributions: logpdf
 # Fix for categorical logpdf
 function domain(d::Categorical)
     K = ncategories(d)
-    data = reshape(collect(1:K), K, 1)
+    data = reshape(collect(1:K), 1, K)
     area = K
     return Domain(data, area)
 end
 
-Distributions.logpdf(d::Categorical, x::AbstractArray{<:Real}) = logpdf.(d, x)
+Distributions.logpdf(d::Categorical, x::AbstractArray{<:Real}) = vec(logpdf.(d, x))
 
-Distributions.logpdf(d::Categorical) = log.(probs(d))
+Distributions.logpdf(d::Categorical) = vec(log.(probs(d)))
 
 function Distributions.logpdf!(r::AbstractArray{<:Real}, d::Categorical, x::AbstractArray{<:Real})
     r .= logpdf(d, x)

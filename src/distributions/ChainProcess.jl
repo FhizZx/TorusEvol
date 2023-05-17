@@ -45,9 +45,14 @@ struct ChainJointDistribution
     t::Real
     function ChainJointDistribution(ξ::MixtureProductProcess,
                                     τ::TKF92)
-        @assert num_descendants(τ) == 1
-        @assert τ.known_ancestor == true
-        t = τ.ts[1]
+        @assert num_descendants(τ) ∈ [1, 2]
+        if num_descendants(τ) == 1
+            @assert τ.known_ancestor == true
+            t = τ.ts[1]
+        elseif num_descendants(τ) == 2
+            @assert τ.known_ancestor == false
+            t = sum(τ.ts)
+        end
         new(ξ, τ, t)
     end
 end

@@ -1,4 +1,38 @@
 using Distributions
+using LogExpFunctions
+
+# The LED for alignment
+struct LengthEquilibriumDistribution <: DiscreteUnivariateDistribution
+
+    lp_0::Real
+    lp_geom_rate::Real
+    function LengthEquilibriumDistribution(λ::Real, μ::Real, r::Real)
+        lp_0 = log1mexp(log(λ) - log(μ))
+        lp_geom_rate = lp_0 + log1mexp(log(r))
+        new(lp_0, lp_geom_rate)
+    end
+end
+
+const LED = LengthEquilibriumDistribution
+
+function Distributions.rand(rng::AbstractRNG, d::LED)
+    is_0 = rand(rng, Bernoulli(exp(d.lp_0)))
+    if is_0
+        return 0
+    else
+        return 1+rand(rng, Geometric(exp(d.lp_geom_rate)))
+    end
+end
+
+function Distributions.logpdf(d::LED, n::Integer)
+    if n == 0
+        return d.lp_0
+    else
+        return log1mexp(d.lp_0) + (n-1)*log1mexp(d.lp_geom_rate) + d.lp_geom_rate
+    end
+end
+
+
 
 
 # ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -19,7 +53,7 @@ size(d::AlignmentDistribution) = (num_descendants(d.τ)+1, d.max_length)
 function alignment_to_tkf92state_ids(M::Alignment, τ::TKF92)
     s = START_INDEX
     D = num_descendants(τ)
-    flags = align_state_flags[D]
+    flags = align_state_flags[D][s]
     state_ids = Int[]
     for col ∈ M
         anc_value = col[1]
@@ -99,38 +133,45 @@ end
 # ℙ[M | X, Y, τ]
 struct ConditionedAlignmentDistribution <: DiscreteMatrixDistribution
     τ::TKF92 # alignment model
-    τ_known_anc::TKF92 # for computing pdfs
     α::AbstractArray{<:Real} #DP matrix for conditional alignment sampling/pdf computation
+    max_length::Integer
+    function ConditionedAlignmentDistribution(τ::TKF92,
+                                              α::AbstractArray{<:Real})
+        max_length = 1000+sum(size(α)[1:end-1])
+        return new(τ, α, max_length)
+    end
+
 end
 
 size(d::ConditionedAlignmentDistribution) = (num_descendants(d.τ)+1, d.max_length)
 
 # lℙ[M_XY | X, Y]
 function _logpdf(d::ConditionedAlignmentDistribution, M::AbstractMatrix{<:Integer})
-    logp = _backward_logpdf(d.α, d.τ_known_anc, Alignment(M))
+    logp = _backward_logpdf(d.α, d.τ, Alignment(M))
     return logp
 end
 
 function _rand!(rng::AbstractRNG, d::ConditionedAlignmentDistribution,
                 M::AbstractMatrix{<:Integer})
     alignment = _backward_sampling(rng, d.α, d.τ)
-    M[:, length(alignment)] .= data(alignment)
-    M[:, length(alignment) + 1] .= 0
+    M[:, 1:length(alignment)] .= data(alignment)
+    M[:, (length(alignment) + 1):end] .= 0
     return M
 end
 
-function _backward_logpdf(α::AbstractArray{<:Real}, model::TKF92, M::Alignment)
-    @assert model.known_ancestor == true
-
+function _backward_logpdf(α::AbstractArray{<:Real}, model::TKF92, M::Alignment)+
     end_corner = size(α)[1:end-1] # N_X + 1 by N_Y + 1
     A = transmat(model)
     state_ids = alignment_to_tkf92state_ids(M, model)
     res = 0
 
+    # the log probability of doing a backstep to a state from current state
+    lps = similar(α, num_states(model))
+
     # first, step back from the END state
     s = state_ids[end]
     lps .= A[:, END_INDEX] .+ α[end_corner..., :]
-    res .+= lps[s] - logsumexp(lps)
+    res += lps[s] - logsumexp(lps)
 
     curr_αind = end_corner
 
@@ -138,11 +179,17 @@ function _backward_logpdf(α::AbstractArray{<:Real}, model::TKF92, M::Alignment)
     for q ∈ [reverse(state_ids[1:end-1]); START_INDEX]
         state = state_values(model)[s]
 
-        # backtracking through α
-        prev_αind = curr_αind .- state
-        lps .= A[:, s] .+ α[prev_αind..., :] .- α[curr_αind..., s]
-        res .+= lps[q] - logsumexp(lps)
-        curr_αind = prev_αind
+        # special case - if ancestor not known, cannot keep track of this index
+        if !model.known_ancestor && s == no_survivors_ancestor_id(model) && s == q
+            res += log(model.full_del_rate)
+        else
+            # backtracking through α
+            prev_αind = curr_αind .- state
+            lps .= A[:, s] .+ α[prev_αind..., :] .- α[curr_αind..., s]
+            res += lps[q] - logsumexp(lps)
+            curr_αind = prev_αind
+        end
+
         s = q
     end
 

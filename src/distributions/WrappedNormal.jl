@@ -62,7 +62,7 @@ end
 # 𝛷 = N(μ, Σ)
 # 𝕃 = 2π[-r,r]ᵈ ∩ B(𝛷, R) (in sqmahal distance)
 function WrappedNormal(μ::AbstractVector{<:Real}, Σ)
-    # 𝛷 = MvNormal(cmod(μ), Σ)
+    𝛷 = MvNormal(cmod(μ), Σ)
     # R = 12.0
     # r = ceil(Int, R * 1.0)
     # 𝕃 = discrete_ellipsoid(𝛷, r, R)

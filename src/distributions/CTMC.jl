@@ -49,9 +49,16 @@ function jointlp(c::CTMC, t::Real)
     return log.(P) .+ logpdf(statdist(c))
 end
 
-function transdist(c::CTMC, t::Real, x₀)
+function transdist(c::CTMC, t::Real, x₀::Integer)
     P = transmat(c, t)
+    @info x₀ "aa"
     return Categorical(P[x₀, :])
+end
+
+function transdist(c::CTMC, t::Real, x₀::AbstractArray{<:Integer})
+    P = transmat(c, t)
+    @info x₀[1] "vv"
+    return Categorical(P[x₀[1], :])
 end
 
 num_states(c::CTMC) = size(c.Q, 1)
