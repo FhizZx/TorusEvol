@@ -49,15 +49,13 @@ function jointlp(c::CTMC, t::Real)
     return log.(P) .+ logpdf(statdist(c))
 end
 
-function transdist(c::CTMC, t::Real, x₀::Integer)
+function transdist(c::CTMC, t::Real, x₀)
     P = transmat(c, t)
-    @info x₀ "aa"
     return Categorical(P[x₀, :])
 end
 
-function transdist(c::CTMC, t::Real, x₀::AbstractArray{<:Integer})
+function transdist(c::CTMC, t::Real, x₀::AbstractArray)
     P = transmat(c, t)
-    @info x₀[1] "vv"
     return Categorical(P[x₀[1], :])
 end
 

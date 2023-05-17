@@ -292,10 +292,6 @@ function hiddenchain_from_alignment(Y::ObservedChain, Z::ObservedChain,
             p = processes(ξ)[c, e]
 
             # [1, 0, 0] - p(x) = statdist
-            @info N_Ω
-            @info count(X_maskX)
-            @info size(logprobs[c][e, :, X_maskX])
-            @info size(logpdf(statdist(p), Ω))
             logprobs[c][e, :, X_maskX] .= logpdf(statdist(p), Ω)
 
             # [1, 1, 0] - p(x | y)
@@ -318,13 +314,8 @@ function hiddenchain_from_alignment(Y::ObservedChain, Z::ObservedChain,
             translogpdf!(tape, p, t_Y, Ω, dataY111); dataX111 .+= tape
             translogpdf!(tape, p, t_Z, Ω, dataZ111); dataX111 .+= tape
             dataX111 .-= logpdf(statdist(p), dataY111)'
-            @info size(dataY111) "dataY111"
-            @info size(dataZ111) "dataZ111"
-            @info size(dataX111) "dataX111"
             ts = transdist.(Ref(p), Ref(t_Y + t_Z), eachcol(dataY111))
-            @info eachcol(dataY111)
-            @info ts
-            dataX111 .-= logpdf.(ts, eachcol(dataZ111))'
+            dataX111 .-= logpdf(ts, dataZ111)'
         end
     end
 

@@ -11,6 +11,14 @@ function domain(d::Categorical)
     return Domain(data, area)
 end
 
+function logpdf(ds::AbstractVector{<:Distribution}, X::AbstractVecOrMat)
+    if size(X, 1) == 1
+        return logpdf.(ds, vec(X))
+    else
+        return logpdf.(ds, eachcol(X))
+    end
+end
+
 Distributions.logpdf(d::Categorical, x::AbstractArray{<:Real}) = vec(logpdf.(d, x))
 
 Distributions.logpdf(d::Categorical) = vec(log.(probs(d)))

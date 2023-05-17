@@ -50,7 +50,7 @@ function jointlogpdf!(r::AbstractMatrix{<:Real}, p::AbstractProcess{D}, t::Real,
     for j ∈ 1:m
         @views logpdf!(r[:, j], transdists[j], X)
     end
-    # Make each row of r into the log probability of the stationary distribution at Y
+    # Add to each row of r the log probability of the stationary distribution at Y
     r .+= logpdf(statdist(p), Y)'
     return r
 end
@@ -68,6 +68,8 @@ function translogpdf!(r::AbstractMatrix{<:Real}, p::AbstractProcess{D}, t::Real,
                       X::AbstractVecOrMat,
                       Y::AbstractVecOrMat) where D <: Distribution
     jointlogpdf!(r, p, t, X, Y)
+
+    # remove from each column the statdist of X
     r .-= logpdf(statdist(p), X)
 
     return r
