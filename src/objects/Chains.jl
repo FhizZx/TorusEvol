@@ -32,11 +32,14 @@ show(io::IO, x::ObservedChain) = print(io, "ObservedChain(" *
 
 # __________________________________________________________________________________________
 
-# struct MarginalisedData
-#     domains::AbstractVector{AbstractArray}
-#     logprobs::AbstractMatrix{<:Real, 3}
-# end
+struct HiddenChain
+    domains::AbstractVector{<:AbstractArray{<:Real, 2}}
+    logprobs::AbstractVector{<:AbstractArray{<:Real, 3}}
+    # size(logprobs)[c] = E x N_Ω_c x N
+    N::Integer
+    E::Integer
+end
 
-# num_sites(x::MarginalisedData) = size(logprobs)
-# num_coordinates(x::MarginalisedData) = length(data(x))
-# num_regimes(x::MarginalisedData) =
+num_coords(x::HiddenChain) = length(x.logprobs)
+num_sites(x::HiddenChain) = x.N
+num_regimes(x::HiddenChain) = x.E

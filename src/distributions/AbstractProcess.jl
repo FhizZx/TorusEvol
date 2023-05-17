@@ -6,8 +6,16 @@ using Memoization
 import Base: length, eltype, show
 import Distributions: _logpdf, _logpdf!, mean, _rand!
 
+struct Domain
+    data::AbstractArray
+    area::Real
+end
+length(Ω::Domain) = size(data(Ω), 2)
+area(Ω::Domain) = Ω.area
+data(Ω::Domain) = Ω.data
+
 # ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-# Interface for abstract (continuous time) Markovian Processes
+# Interface for abstract (continuous time) reversible Markovian Processes
 abstract type AbstractProcess{D <: Distribution} end
 
 # The stationary distribution of the process
@@ -15,6 +23,9 @@ function statdist(::AbstractProcess) end
 
 # The transition distribution at time t starting from x₀
 function transdist(::AbstractProcess, t::Real, x₀) end
+
+# The domain of the process
+domain(p::AbstractProcess) = domain(statdist(p))
 
 # The joint distribution of x and y separated by time t
 jointdist(p::AbstractProcess, t::Real) = JointDistribution(statdist(p), transdist(p, t, x))
@@ -26,7 +37,7 @@ function transdist!(r::AbstractVector, p::AbstractProcess,
     return r
 end
 
-# Create a matrix r[i, j] = ℙ[Xᵢ, Yⱼ | process p]
+# Create a matrix r[i, j] = ℙ[Xᵢ, Yⱼ | process p, time t]
 # which gives the joint probability of points Xᵢ and Yⱼ under process p
 function jointlogpdf!(r::AbstractMatrix{<:Real}, p::AbstractProcess{D}, t::Real,
                       X::AbstractVecOrMat,
@@ -48,6 +59,17 @@ end
 function statlogpdf!(r::AbstractVector{<:Real}, p::AbstractProcess,
                      X::AbstractVecOrMat)
     r .= logpdf!(r, statdist(p), X)
+    return r
+end
+
+# Create a matrix r[i, j] = ℙ[Yⱼ | Xᵢ, process p, time t]
+# which gives the joint probability of points Xᵢ and Yⱼ under process p
+function translogpdf!(r::AbstractMatrix{<:Real}, p::AbstractProcess{D}, t::Real,
+                      X::AbstractVecOrMat,
+                      Y::AbstractVecOrMat) where D <: Distribution
+    jointlogpdf!(r, p, t, X, Y)
+    r .-= logpdf(statdist(p), X)
+
     return r
 end
 

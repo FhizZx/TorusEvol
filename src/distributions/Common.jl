@@ -4,6 +4,13 @@ import Distributions: logpdf
 
 
 # Fix for categorical logpdf
+function domain(d::Categorical)
+    K = ncategories(d)
+    data = reshape(collect(1:K), K, 1)
+    area = K
+    return Domain(data, area)
+end
+
 Distributions.logpdf(d::Categorical, x::AbstractArray{<:Real}) = logpdf.(d, x)
 
 Distributions.logpdf(d::Categorical) = log.(probs(d))

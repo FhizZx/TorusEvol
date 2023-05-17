@@ -97,26 +97,21 @@ end
 
 # ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 # ℙ[M | X, Y, τ]
-struct ConditionedPairAlignmentDistribution <: DiscreteMatrixDistribution
+struct ConditionedAlignmentDistribution <: DiscreteMatrixDistribution
     τ::TKF92 # alignment model
-    α::AbstractArray{<:Real}
-    unconditioned::AlignmentDistribution
-    lp_data::Real
+    τ_known_anc::TKF92 # for computing pdfs
+    α::AbstractArray{<:Real} #DP matrix for conditional alignment sampling/pdf computation
 end
 
-size(d::ConditionedPairAlignmentDistribution) = (num_descendants(d.τ)+1, d.max_length)
+size(d::ConditionedAlignmentDistribution) = (num_descendants(d.τ)+1, d.max_length)
 
 # lℙ[M_XY | X, Y]
-# function _logpdf(d::ConditionedPairAlignment, M::AbstractMatrix{<:Real})
-#     logpdf(d.unconditioned, M) + logpdf(X, Y |) - d.lp_data
+function _logpdf(d::ConditionedAlignmentDistribution, M::AbstractMatrix{<:Integer})
+    logp = _backward_logpdf(d.α, d.τ_known_anc, Alignment(M))
+    return logp
+end
 
-#     α = d.α
-#     model = d.model
-#     logp = forward!(α, model, emission_lps)
-#     return logp
-# end
-
-function _rand!(rng::AbstractRNG, d::ConditionedPairAlignmentDistribution,
+function _rand!(rng::AbstractRNG, d::ConditionedAlignmentDistribution,
                 M::AbstractMatrix{<:Integer})
     alignment = _backward_sampling(rng, d.α, d.τ)
     M[:, length(alignment)] .= data(alignment)
@@ -124,43 +119,35 @@ function _rand!(rng::AbstractRNG, d::ConditionedPairAlignmentDistribution,
     return M
 end
 
-# function _backward_logpdf(α::AbstractArray{<:Real}, model::TKF92, M::Alignment)
-#     end_corner = size(α)[1:end-1] # N_X + 1 by N_Y + 1
-#     A = transmat(model)
+function _backward_logpdf(α::AbstractArray{<:Real}, model::TKF92, M::Alignment)
+    @assert model.known_ancestor == true
 
-#     res = 0
+    end_corner = size(α)[1:end-1] # N_X + 1 by N_Y + 1
+    A = transmat(model)
+    state_ids = alignment_to_tkf92state_ids(M, model)
+    res = 0
 
-#     # first, step back from the END state
-#     res +=
-#     lps .= A[:, END_INDEX] .+ α[end_corner..., :]
-#     lps .-= logsumexp(lps)
+    # first, step back from the END state
+    s = state_ids[end]
+    lps .= A[:, END_INDEX] .+ α[end_corner..., :]
+    res .+= lps[s] - logsumexp(lps)
 
-#     s = rand(rng, Categorical(exp.(lps)))
-#     curr_αind = end_corner
-#     align_cols = Domino[]
+    curr_αind = end_corner
 
-#     # keep doing back steps until the START state is reached
-#     while s != START_INDEX
-#         col = state_align_cols(model)[s]
-#         state = state_values(model)[s]
-#         # if ancestor unknown, cannot keep track of index
-#         if !model.known_ancestor && s == no_survivors_ancestor_id(model)
-#             l = 1 + rand(rng, Geometric(1 - model.full_del_rate))
-#             append!(align_cols, fill(col, l))
-#         else
-#             push!(align_cols, col)
-#         end
+    # keep doing back steps until the START state is reached
+    for q ∈ [reverse(state_ids[1:end-1]); START_INDEX]
+        state = state_values(model)[s]
 
-#         # probabilistic backtracking through α
-#         prev_αind = curr_αind .- state
-#         lps .= A[:, s] .+ α[prev_αind..., :] .- α[curr_αind..., s]
-#         lps .-= logsumexp(lps)
-#         curr_αind = prev_αind
+        # backtracking through α
+        prev_αind = curr_αind .- state
+        lps .= A[:, s] .+ α[prev_αind..., :] .- α[curr_αind..., s]
+        res .+= lps[q] - logsumexp(lps)
+        curr_αind = prev_αind
+        s = q
+    end
 
-#         s = rand(rng, Categorical(exp.(lps)))
-#     end
-#     return Alignment(hcat(reverse(align_cols)...))
-# end
+    return res
+end
 
 function _backward_sampling(rng::AbstractRNG,
                             α::AbstractArray{<:Real}, model::TKF92)

@@ -32,6 +32,8 @@ export
     num_coords,
     num_regimes,
     slice,
+    HiddenChain,
+
 
     # objects/Alignment
     Alignment,
@@ -63,12 +65,17 @@ export
     WAG_SubstitutionProcess,
 
     # distributions/AbstractProcess
+    Domain,
+    area,
     AbstractProcess,
+    domain,
     statdist,
     transdist,
     transdist!,
     jointlogpdf!,
+    translogpdf!,
     statlogpdf!,
+    fulltranslogpdf!,
     fulljointlogpdf!,
     fulljointlogpdf,
     randjoint,
@@ -76,9 +83,11 @@ export
 
     #distributions/AlignmentProcess
     AlignmentDistribution,
+    ConditionedAlignmentDistribution,
 
     #distributions/ChainProcess
     ChainJointDistribution,
+    ChainTransitionDistribution,
     logpdf,
     logpdfα!,
     logpdfαB!,
@@ -115,6 +124,7 @@ export
     MixtureProductProcess,
     weights,
     processes,
+    hiddenchain_from_alignment,
 
     # distributions/EvolHMM.jl
     PairDataHMM,

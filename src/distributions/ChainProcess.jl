@@ -140,25 +140,27 @@ function rand(d::ChainJointDistribution)
     (X, Y)
 end
 
-#todo - tuesday
-# # __________________________________________________________________________________________
-# # Distribution over processes descending from ancestor X in time t
-# struct ChainTransitionDistribution
-#     ξ::MixtureProductProcess # site level process
-#     τ::TKF92 # alignment model
-#     X::AbstractChain
-#     t::Real
-# end
+# __________________________________________________________________________________________
+# Distribution over processes started at ancestor X in time t
+struct ChainTransitionDistribution
+    ξ::MixtureProductProcess # site level process
+    τ::TKF92 # alignment model
+    X::AbstractChain
+    t::Real
+end
 
-# function logpdf(d::ChainTransitionDistribution,
-#                 Y::AbstractChain)
-#     X = d.X
-#     α = Array{Float64}(undef, X.N + 1, Y.N + 1, num_states(d.τ))
-#     logpdf!(α, d, (X, Y))
-# end
+function logpdf(d::ChainTransitionDistribution,
+                Y::AbstractChain)
+    X = d.X
+    α = Array{Float64}(undef, X.N + 1, Y.N + 1, num_states(d.τ))
+    logpdfα!(α, d, Y)
+end
 
-# function logpdf!(α::AbstractArray{<:Real}, d::JointChainDistribution,
-#                  Y::AbstractChain)
-#     B = fulltranslogpdf(d.ξ, t, X, Y)
-#     forward!(α, d.τ, B)
-# end
+function logpdfα!(α::AbstractArray{<:Real}, d::ChainTransitionDistribution,
+                  Y::AbstractChain)
+    X = d.X
+    @assert all(size(α) .== (num_sites(X)+1, num_sites(Y)+1, num_states(d.τ)))
+    B = get_B((X, Y))
+    fulltranslogpdf!(B, d.ξ, t, X, Y)
+    forward!(α, d.τ, B)
+end

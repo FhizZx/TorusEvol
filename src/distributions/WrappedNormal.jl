@@ -35,7 +35,7 @@ function discrete_ellipsoid(𝛷::MvNormal, r::Real, R::Real)
     d = length(𝛷)
     cube = twoπ_hyper_cube(r, d)
     mindist = 3 * sqmahal(𝛷, zeros(d))
-    ellipsoid = cube[:, sqrt(sqmahal(𝛷, cube)) .< max(R, mindist)]
+    ellipsoid = cube[:, sqmahal(𝛷, cube) .< max(R, mindist)]
     ellipsoid
 end
 
@@ -50,9 +50,9 @@ end
 # WN(μ, Σ) - analogue of N(μ, Σ) over 𝕋ᵈ
 struct WrappedNormal <: ContinuousMultivariateDistribution
     𝛷::ContinuousMultivariateDistribution # the underlying unwrapped distribution
-    𝕃::AbstractMatrix{<:Real}  # 𝕃 ⊂ 2πℤᵈ truncated torus lattice
-                               #    used to collect (most of) the probability mass
-                               #    of 𝛷 into [-π, π)ᵈ
+    𝕃::AbstractMatrix{<:Real}             # 𝕃 ⊂ 2πℤᵈ truncated torus lattice
+                                          #    used to collect (most of) the probability mass
+                                          #    of 𝛷 into [-π, π)ᵈ
 end
 
 
@@ -62,10 +62,10 @@ end
 # 𝛷 = N(μ, Σ)
 # 𝕃 = 2π[-r,r]ᵈ ∩ B(𝛷, R) (in sqmahal distance)
 function WrappedNormal(μ::AbstractVector{<:Real}, Σ)
-    𝛷 = MvNormal(cmod(μ), Σ)
-    #R = 10.0
-    #r = ceil(Int, R * 1.5)
-    #𝕃 = discrete_ellipsoid(𝛷, r, R)
+    # 𝛷 = MvNormal(cmod(μ), Σ)
+    # R = 12.0
+    # r = ceil(Int, R * 1.0)
+    # 𝕃 = discrete_ellipsoid(𝛷, r, R)
 
     #temp - consider only the 8 neighbouring quadrants in the lattice
     𝕃 = twoπ_hyper_cube(1, length(μ))
@@ -100,6 +100,16 @@ lattice(wn::WrappedNormal) = wn.𝕃
 
 # __________________________________________________________________________________________
 # Distribution Methods
+
+const WN_GRID_SIZE = 25
+const WN2_DOMAIN = Domain(hcat(map(collect, vec(collect(Base.product(fill(-π:(2π/WN_GRID_SIZE):π, 2)...))))...), WN_GRID_SIZE*WN_GRID_SIZE)
+
+function domain(wn::WrappedNormal)
+    if length(wn) == 2
+        return WN2_DOMAIN
+    end
+    return []
+end
 
 # Domain Dimension
 Base.length(wn::WrappedNormal) = length(wn.𝛷)
@@ -199,9 +209,9 @@ show(io::IO, wn::WrappedNormal) = print(io, "WrappedNormal(" *
                                           "\n)")
 
 # Plot the points in 𝕃
-function plotlattice(wn::WrappedNormal)
+function plotlattice(wn::WrappedNormal, plt)
     @assert length(wn) <= 3
-    scatter(eachrow(wn.𝕃)...,size=(400,400), title="WN Lattice", label="")
+    scatter!(plt, eachrow(wn.𝕃)...,size=(400,400), title="", label="𝕃")
 end
 
 

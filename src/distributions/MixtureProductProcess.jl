@@ -35,7 +35,21 @@ num_regimes(m::MixtureProductProcess) = size(m.processes, 2)
 #     return r
 # end
 
-function fulljointlogpdf!(r::AbstractMatrix{<:Real},
+@memoize function fulltranslogpdf!(r::AbstractMatrix{<:Real},
+                          p::MixtureProductProcess,
+                          t::Real,
+                          X::HiddenChain,
+                          Y::ObservedChain)
+    n = num_sites(X)
+    m = num_sites(Y)
+    r .= -Inf
+    r[1:n+1, m+1] .= 0
+    @views translogpdf!(r[1:n, 1:m], p, t, X, Y)
+    @views statlogpdf!(r[n+1, 1:m], p, Y)
+    return r
+end
+
+@memoize function fulljointlogpdf!(r::AbstractMatrix{<:Real},
                      p::MixtureProductProcess, t::Real,
                      X::ObservedChain,
                      Y::ObservedChain)
@@ -61,6 +75,63 @@ end
     @views statlogpdf!(r[1:n, m+1], p, X)
     @views statlogpdf!(r[n+1, 1:m], p, Y)
     return r
+end
+
+function logdotexp!(r, A::AbstractMatrix,
+                       B::AbstractMatrix)
+    N, M = size(r)
+    for i ∈ 1:N, j ∈ 1:M
+        @views r[i, j] = logsumexp(A[:, i] .+ B[:, j])
+    end
+    return r
+end
+
+
+function translogpdf!(r::AbstractMatrix{<:Real},
+                          m::MixtureProductProcess,
+                          t::Real,
+                          X::HiddenChain,
+                          Y::ObservedChain)
+    N_X = num_sites(X)
+    N_Y = num_sites(Y)
+    E = num_regimes(m)
+    C = num_coords(m)
+    workspace = similar(r)
+    workspace .= -Inf
+
+    # Compute the contribution of each regime to the final logpdf
+    r_e = similar(workspace)
+    r_e .= -Inf
+
+    ys = data(Y)
+
+
+    for e ∈ 1:E
+        w = weights(m)[e]
+        r_e .= log(w)
+        for c ∈ 1:C
+            p = processes(m)[c, e]
+
+            # Domain over which we marginalise
+            Ω = data(domain(p))
+            N_Ω = length(domain(p))
+            A_Ω = area(domain(p))
+
+            tape = similar(r, N_Ω, N_Y)
+            tape .= -Inf
+            translogpdf!(tape, p, t, Ω, ys[c])
+
+            @views ρ_X = logprobs(X)[c][e, :, :]
+            logdotexp!(workspace, ρ_X, tape)
+            workspace .+= log(A_Ω) - log(N_Ω)
+
+            r_e .= r_e .+ workspace
+        end
+        r .= logaddexp.(r, r_e)
+    end
+
+    return r
+
 end
 
 function jointlogpdf!(r::AbstractMatrix{<:Real},
@@ -170,3 +241,78 @@ show(io::IO, p::MixtureProductProcess) = print(io, "MixtureProductProcess(" *
                                                    "\nweights: " * string(weights(p)) *
                                                    "\nprocesses: " * string(processes(p)) *
                                                    "\n)")
+
+
+function hiddenchain_from_alignment(Y::ObservedChain, Z::ObservedChain,
+                                    t_Y::Real, t_Z::Real, M_XYZ::Alignment,
+                                    ξ::MixtureProductProcess)
+    C = num_coords(ξ)
+    E = num_regimes(ξ)
+
+    alignment = M_XYZ
+    X_mask = mask(alignment, [[1], [0,1], [0,1]])
+    alignmentX = slice(alignment, X_mask)
+    Y_mask = mask(alignment, [[0,1], [1], [0,1]])
+    alignmentY = slice(alignment, Y_mask)
+    Z_mask = mask(alignment, [[0,1], [0,1], [1]])
+    alignmentZ = slice(alignment, Z_mask)
+
+    X_maskX = mask(alignmentX, [[1], [0], [0]])
+
+    XY_maskX = mask(alignmentX, [[1], [1], [0]])
+    XY_maskY = mask(alignmentY, [[1], [1], [0]])
+
+    XZ_maskX = mask(alignmentX, [[1], [0], [1]])
+    XZ_maskZ = mask(alignmentZ, [[1], [0], [1]])
+
+    XYZ_maskX = mask(alignmentX, [[1], [1], [1]])
+    XYZ_maskY = mask(alignmentY, [[1], [1], [1]])
+    XYZ_maskZ = mask(alignmentZ, [[1], [1], [1]])
+
+    N = length(alignmentX)
+    logprobs = Array{Float64, 3}[]
+    domains = Array{Real, 2}[]
+
+    dataY = data(Y)
+    dataZ = data(Z)
+
+    for c ∈ 1:C
+        Ω = data(domain(processes(ξ)[c, 1]))
+        N_Ω = length(domain(processes(ξ)[c, 1]))
+        push!(domains, Ω)
+        lp_c = Array{Float64}(undef, E, N_Ω, N)
+        lp_c .= -Inf
+        push!(logprobs, lp_c)
+
+        for e ∈ 1:E
+            p = processes(ξ)[c, e]
+
+            # [1, 0, 0] - p(x) = statdist
+            logprobs[c][e, :, X_maskX] .= logpdf(statdist(p), Ω)
+
+            # [1, 1, 0] - p(x | y)
+            dataY110 = @view dataY[c][:, XY_maskY]
+            dataX110 = @view logprobs[c][e, :, XY_maskX]
+            translogpdf!(dataX110', p, t_Y, dataY110, Ω)
+
+            # [1, 0, 1] - p(z | y)
+            dataZ101 = @view dataZ[c][:, XZ_maskZ]
+            dataX101 = @view logprobs[c][e, :, XZ_maskX]
+            translogpdf!(dataX101', p, t_Z, dataZ101, Ω)
+
+            # [1, 1, 1] - p(x | y,z) = p(x)p(y | x)p(z | x) / p(y, z)
+            dataY111 = @view dataY[c][:, XYZ_maskY]
+            dataZ111 = @view dataZ[c][:, XYZ_maskZ]
+            dataX111 = @view logprobs[c][e, :, XYZ_maskX]
+            tape = similar(dataX111)
+
+            dataX111 .= logpdf(statdist(p), Ω)
+            translogpdf!(tape, p, t_Y, Ω, dataY111); dataX111 .+= tape
+            translogpdf!(tape, p, t_Z, Ω, dataZ111); dataX111 .+= tape
+            dataX111 .-= logpdf(statdist(p), dataY111)'
+            dataX111 .-= logpdf.(transdist.(Ref(p), Ref(t_Y + t_Z), eachcol(dataY111)), eachcol(dataZ111))'
+        end
+    end
+
+    return HiddenChain(domains, logprobs, N, E)
+end

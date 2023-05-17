@@ -9,7 +9,7 @@ function plotpdf(d::ContinuousDistribution; step=π/100)
         grid = hcat([[j, i] for i in ticks, j in ticks]...)
         z = reshape(pdf(d, grid), length(ticks), :)
         heatmap(ticks, ticks, z, size=(400, 400), title="Density",
-                xlabel="ϕ angles", ylabel="ψ angles")
+                xlabel="ϕ angles", ylabel="ψ angles", legend=:none)
     else
         throw("plotting not implemented for d != 2")
     end
