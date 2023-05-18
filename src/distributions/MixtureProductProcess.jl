@@ -92,10 +92,10 @@ end
 
 
 function translogpdf!(r::AbstractMatrix{<:Real},
-                          m::MixtureProductProcess,
-                          t::Real,
-                          X::HiddenChain,
-                          Y::ObservedChain)
+                      m::MixtureProductProcess,
+                      t::Real,
+                      X::HiddenChain,
+                      Y::ObservedChain)
     N_X = num_sites(X)
     N_Y = num_sites(Y)
     E = num_regimes(m)
@@ -125,7 +125,7 @@ function translogpdf!(r::AbstractMatrix{<:Real},
             tape .= -Inf
             translogpdf!(tape, p, t, Ω, ys[c])
 
-            @views ρ_X = logprobs(X)[c][e, :, :]
+            ρ_X = @view logprobs(X)[c][e, :, :]
             logdotexp!(workspace, ρ_X, tape)
             workspace .+= log(A_Ω) - log(N_Ω)
 

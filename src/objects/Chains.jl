@@ -32,7 +32,7 @@ show(io::IO, x::ObservedChain) = print(io, "ObservedChain(" *
 
 # __________________________________________________________________________________________
 
-struct HiddenChain
+struct HiddenChain <: AbstractChain
     domains::AbstractVector{<:AbstractArray{<:Real, 2}}
     logprobs::AbstractVector{<:AbstractArray{<:Real, 3}}
     # size(logprobs)[c] = E x N_Ω_c x N
@@ -43,3 +43,5 @@ end
 num_coords(x::HiddenChain) = length(x.logprobs)
 num_sites(x::HiddenChain) = x.N
 num_regimes(x::HiddenChain) = x.E
+logprobs(X::HiddenChain) = X.logprobs
+domains(X::HiddenChain) = X.domains

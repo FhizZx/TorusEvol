@@ -13,6 +13,9 @@ export
 
     # utils/Backbone
     build_biochain_from_aminoacids_dihedrals,
+    id_to_aa,
+    aa_to_id,
+    aminoacids,
     #build_chain_from_alignment,
 
     # objects/Polypeptide
@@ -33,6 +36,8 @@ export
     num_regimes,
     slice,
     HiddenChain,
+    logprobs,
+    domains,
 
 
     # objects/Alignment
@@ -45,6 +50,7 @@ export
     subalignment,
     combine,
     mask,
+    show_filled_alignment,
 
 
     # models/TKF92
@@ -96,6 +102,7 @@ export
     get_α,
     get_B,
     rand,
+    ChainPair,
 
     # distributions/WrappedNormal
     WrappedNormal,

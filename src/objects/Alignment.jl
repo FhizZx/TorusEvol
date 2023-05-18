@@ -50,7 +50,45 @@ function subalignment(a::Alignment, ids::AbstractVector{<:Integer}) :: Alignment
     return Alignment(ids, a.data[new_indices, :])
 end
 
-Base.show(io::IO, a::Alignment) = print(io, "Alignment(" * string(a.data) * '\n')
+function _char(m)
+    v = Array{Char}(undef, size(m, 1), size(m, 2))
+    v[m .== 1] .= '#'
+    v[m .== 0] .= '-'
+    v
+end
+function _nice_print(m; split_size = 75)
+    i = 1
+    num_rows = size(m, 1)
+    L = size(m, 2)
+    res = "\n"
+    while i < L
+        r = min(L, i+split_size-1)
+        for j ∈ 1:num_rows
+            row = m[j, i:r]
+            for a ∈ row
+                res = res * string(a)
+            end
+            res = res * '\n'
+        end
+        res = res * '\n'
+        i += split_size
+    end
+    res
+end
+
+function show_filled_alignment(a::Alignment, contents...)
+    contents = collect(contents)
+    m = data(a)
+    res = Array{String}(undef, size(m, 1), size(m, 2))
+    for i ∈ 1:num_sequences(a)
+        res[i, m[i, :] .== 1] .= vec(string.(contents[i]))
+    end
+    res[m .== 0] .= "-"
+    print(_nice_print(res))
+end
+
+
+Base.show(io::IO, a::Alignment) = print(io, "Alignment(" * _nice_print(_char(a.data)) * '\n')
 
 # Combine two alignments using their common "parent" sequence to establish consensus
 function combine(parent_id::Int, a1::Alignment, a2::Alignment) :: Alignment
@@ -67,13 +105,15 @@ function combine(parent_id::Int, a1::Alignment, a2::Alignment) :: Alignment
     data1 = data(a1)[1:end .!= row_index(a1, parent_id), :]
     data2 = data(a2)[1:end .!= row_index(a2, parent_id), :]
 
-    empty1 = zeros(length(a1))
-    empty2 = zeros(length(a2))
+    empty1 = zeros(Int, num_sequences(a1) - 1)
+    empty2 = zeros(Int, num_sequences(a2) - 1)
 
     n = length(a1)
+    @assert n == size(data1, 2)
     m = length(a2)
+    @assert m == size(data2, 2)
     i = 1; j = 1
-    columns = []
+    columns = Domino[]
 
     # Match columns which have a parent residue in common
     for _ in 1:parent_length
@@ -86,16 +126,19 @@ function combine(parent_id::Int, a1::Alignment, a2::Alignment) :: Alignment
             push!(columns, [0; empty1; data2[:, j]])
             j += 1
         end
+        # contains1[i] && contains2[j]
 
-        push![1; data1[:, i]; data2[:, j]]
+        push!(columns, [1; data1[:, i]; data2[:, j]])
+        i += 1
+        j += 1
     end
 
     # Add remaining columns from each alignment
-    for _ in i:n
-        push!(columns, [0; data1[:, i]; empty2])
+    for k in i:n
+        push!(columns, [0; data1[:, k]; empty2])
     end
-    for _ in j:m
-        push!(columns, [0; empty1; data2[:, j]])
+    for k in j:m
+        push!(columns, [0; empty1; data2[:, k]])
     end
 
     new_ids = [parent_id; filter(!=(parent_id), a1.ids); filter(!=(parent_id), a2.ids)]

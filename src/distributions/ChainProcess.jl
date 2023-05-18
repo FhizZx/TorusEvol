@@ -36,6 +36,7 @@ import Base: rand
 
 # function logpdf(d::ChainStationaryDistribution, X::AbstractChain)
 
+const ChainPair = Tuple{<:AbstractChain, <:AbstractChain}
 
 # __________________________________________________________________________________________
 # Distribution over two chains related by time t
@@ -66,26 +67,26 @@ function get_α(τ::TKF92, chains::AbstractVector{<:AbstractChain})
     return α
 end
 
-function get_α(τ::TKF92, (X, Y)::Tuple{<:AbstractChain, <:AbstractChain})
+function get_α(τ::TKF92, (X, Y)::ChainPair)
     @assert num_known_nodes(τ) == 2
     α = Array{Float64}(undef, num_sites(X)+1, num_sites(Y)+1, num_states(τ))
     α .= -Inf
     return α
 end
 
-function get_B((X, Y)::Tuple{<:AbstractChain, <:AbstractChain})
+function get_B((X, Y)::ChainPair)
     B = Array{Float64}(undef, num_sites(X)+1, num_sites(Y)+1)
     B .= -Inf
     return B
 end
 
-function logpdf(d::ChainJointDistribution, (X, Y)::Tuple{<:AbstractChain, <:AbstractChain})
+function logpdf(d::ChainJointDistribution, (X, Y)::ChainPair)
     α = get_α(d.τ, [X, Y])
     logpdfα!(α, d, (X, Y))
 end
 
 function logpdfα!(α::AbstractArray{<:Real}, d::ChainJointDistribution,
-                 (X, Y)::Tuple{<:AbstractChain, <:AbstractChain})
+                 (X, Y)::ChainPair)
     @assert all(size(α) .== (num_sites(X)+1, num_sites(Y)+1, num_states(d.τ)))
     B = fulljointlogpdf(d.ξ, d.t, X, Y)
     forward!(α, d.τ, B)
@@ -94,7 +95,7 @@ end
 function logpdfαB!(α::AbstractArray{<:Real},
                    B::AbstractArray{<:Real},
                    d::ChainJointDistribution,
-                   (X, Y)::Tuple{<:AbstractChain, <:AbstractChain})
+                   (X, Y)::ChainPair)
     @assert all(size(α) .== (num_sites(X)+1, num_sites(Y)+1, num_states(d.τ)))
     @assert all(size(B) .== (num_sites(X)+1, num_sites(Y)+1))
     fulljointlogpdf!(B, d.ξ, d.t, X, Y)
@@ -152,6 +153,14 @@ struct ChainTransitionDistribution
     τ::TKF92 # alignment model
     X::AbstractChain
     t::Real
+    function ChainTransitionDistribution(ξ::MixtureProductProcess,
+                                         τ::TKF92,
+                                         X::AbstractChain)
+        @assert num_descendants(τ) == 1
+        @assert τ.known_ancestor == true
+        t = τ.ts[1]
+        new(ξ, τ, X, t)
+    end
 end
 
 function logpdf(d::ChainTransitionDistribution,
@@ -164,6 +173,7 @@ end
 function logpdfα!(α::AbstractArray{<:Real}, d::ChainTransitionDistribution,
                   Y::AbstractChain)
     X = d.X
+    t = d.t
     @assert all(size(α) .== (num_sites(X)+1, num_sites(Y)+1, num_states(d.τ)))
     B = get_B((X, Y))
     fulltranslogpdf!(B, d.ξ, t, X, Y)

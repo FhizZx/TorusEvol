@@ -189,7 +189,7 @@ end
 
 # Optimized for several nodes
 function _WrappedDiffusionNodes!(r::AbstractVector, 𝚯::WrappedDiffusion,
-                                 t::Real, Θ₀::VecOrMat{<:Real})
+                                 t::Real, Θ₀::AbstractVecOrMat{<:Real})
     e⁻ᵗᴬ = drift_coefficient(𝚯, t)
     Γₜ = PDMat(Γ(𝚯, t))
     wn = statdist(𝚯)
