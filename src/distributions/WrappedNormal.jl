@@ -101,7 +101,7 @@ lattice(wn::WrappedNormal) = wn.𝕃
 # __________________________________________________________________________________________
 # Distribution Methods
 
-const WN_GRID_SIZE = 25
+const WN_GRID_SIZE = 14
 const WN2_DOMAIN = Domain(hcat(map(collect, vec(collect(Base.product(fill(-π:(2π/WN_GRID_SIZE):π, 2)...))))...), WN_GRID_SIZE*WN_GRID_SIZE)
 
 function domain(wn::WrappedNormal)

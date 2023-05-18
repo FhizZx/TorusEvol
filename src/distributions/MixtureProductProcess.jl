@@ -292,30 +292,39 @@ function hiddenchain_from_alignment(Y::ObservedChain, Z::ObservedChain,
             p = processes(ξ)[c, e]
 
             # [1, 0, 0] - p(x) = statdist
-            logprobs[c][e, :, X_maskX] .= logpdf(statdist(p), Ω)
+            if count(X_maskX) > 0
+                logprobs[c][e, :, X_maskX] .= logpdf(statdist(p), Ω)
+            end
 
             # [1, 1, 0] - p(x | y)
-            dataY110 = @view dataY[c][:, XY_maskY]
-            dataX110 = @view logprobs[c][e, :, XY_maskX]
-            translogpdf!(dataX110', p, t_Y, dataY110, Ω)
 
-            # [1, 0, 1] - p(z | y)
-            dataZ101 = @view dataZ[c][:, XZ_maskZ]
-            dataX101 = @view logprobs[c][e, :, XZ_maskX]
-            translogpdf!(dataX101', p, t_Z, dataZ101, Ω)
+            if count(XY_maskX) > 0
+                dataY110 = @view dataY[c][:, XY_maskY]
+                dataX110 = @view logprobs[c][e, :, XY_maskX]
+                translogpdf!(dataX110', p, t_Y, dataY110, Ω)
+            end
+
+            # [1, 0, 1] - p(x | z)
+            if count(XZ_maskX) > 0
+                dataZ101 = @view dataZ[c][:, XZ_maskZ]
+                dataX101 = @view logprobs[c][e, :, XZ_maskX]
+                translogpdf!(dataX101', p, t_Z, dataZ101, Ω)
+            end
 
             # [1, 1, 1] - p(x | y,z) = p(x)p(y | x)p(z | x) / p(y, z)
-            dataY111 = @view dataY[c][:, XYZ_maskY]
-            dataZ111 = @view dataZ[c][:, XYZ_maskZ]
-            dataX111 = @view logprobs[c][e, :, XYZ_maskX]
-            tape = similar(dataX111)
+            if count(XYZ_maskX) > 0
+                dataY111 = @view dataY[c][:, XYZ_maskY]
+                dataZ111 = @view dataZ[c][:, XYZ_maskZ]
+                dataX111 = @view logprobs[c][e, :, XYZ_maskX]
+                tape = similar(dataX111)
 
-            dataX111 .= logpdf(statdist(p), Ω)
-            translogpdf!(tape, p, t_Y, Ω, dataY111); dataX111 .+= tape
-            translogpdf!(tape, p, t_Z, Ω, dataZ111); dataX111 .+= tape
-            dataX111 .-= logpdf(statdist(p), dataY111)'
-            ts = transdist.(Ref(p), Ref(t_Y + t_Z), eachcol(dataY111))
-            dataX111 .-= logpdf(ts, dataZ111)'
+                dataX111 .= logpdf(statdist(p), Ω)
+                translogpdf!(tape, p, t_Y, Ω, dataY111); dataX111 .+= tape
+                translogpdf!(tape, p, t_Z, Ω, dataZ111); dataX111 .+= tape
+                dataX111 .-= logpdf(statdist(p), dataY111)'
+                ts = transdist.(Ref(p), Ref(t_Y + t_Z), eachcol(dataY111))
+                dataX111 .-= logpdf(ts, dataZ111)'
+            end
         end
     end
 

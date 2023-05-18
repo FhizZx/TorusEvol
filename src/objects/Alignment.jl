@@ -4,21 +4,23 @@ import Base: show, size, IndexStyle, getindex, setindex!
 const Domino = AbstractVector{<:Integer}
 
 struct Alignment <: AbstractVector{Domino}
+    data::AbstractMatrix{Integer}
     ids::AbstractVector{Integer}
     row_indices::Dict{Integer, Integer}
-    data::AbstractMatrix{Integer}
 end
 
-function Alignment(ids::Vector{<:Integer}, data::AbstractMatrix{<:Integer})
+function Alignment(data::AbstractMatrix{<:Integer}, ids::AbstractVector{<:Integer})
     row_indices = Dict([(ids[i],i) for i ∈ eachindex(ids)])
     # remove null columns
     nonzero_cols = (!).(iszero.(eachcol(data)))
-    return Alignment(ids, row_indices, data[:, nonzero_cols])
+    return Alignment(data[:, nonzero_cols], ids, row_indices)
 end
+
+
 
 function Alignment(data::AbstractMatrix{<:Integer})
     ids = collect(1:size(data, 1))
-    return Alignment(ids, data)
+    return Alignment(data, ids)
 end
 
 ids(a::Alignment) = a.ids
@@ -47,7 +49,7 @@ sequence_lengths(a::Alignment) = [count(x -> x==1, a.data[i, :]) for i ∈ 1:num
 
 function subalignment(a::Alignment, ids::AbstractVector{<:Integer}) :: Alignment
     new_indices = getindex.(Ref(a.row_indices), ids)
-    return Alignment(ids, a.data[new_indices, :])
+    return Alignment(a.data[new_indices, :], ids)
 end
 
 function _char(m)
@@ -88,7 +90,7 @@ function show_filled_alignment(a::Alignment, contents...)
 end
 
 
-Base.show(io::IO, a::Alignment) = print(io, "Alignment(" * _nice_print(_char(a.data)) * '\n')
+Base.show(io::IO, a::Alignment) = print(io, _nice_print(_char(a.data)) * '\n')
 
 # Combine two alignments using their common "parent" sequence to establish consensus
 function combine(parent_id::Int, a1::Alignment, a2::Alignment) :: Alignment
@@ -143,6 +145,6 @@ function combine(parent_id::Int, a1::Alignment, a2::Alignment) :: Alignment
 
     new_ids = [parent_id; filter(!=(parent_id), a1.ids); filter(!=(parent_id), a2.ids)]
 
-    return Alignment(new_ids, hcat(columns...))
+    return Alignment(hcat(columns...), new_ids)
 
 end
