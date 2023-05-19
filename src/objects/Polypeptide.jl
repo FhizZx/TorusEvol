@@ -48,6 +48,28 @@ function from_observed_chain(X::ObservedChain)
     return from_primary_dihedrals(Int.(data(X)[1]), data(X)[2])
 end
 
+function from_aligned_polypeptide(p::Polypeptide, Y::ObservedChain, M_XY::Alignment; chain_id="X")
+    aminoacid_ids = Int.(data(Y)[1])
+    dihedrals = data(Y)[2]
+    chain = build_biochain_from_aminoacids_dihedrals_alignment(p.chain, M_XY, aminoacid_ids,
+                                                               dihedrals; id=chain_id)
+    @assert all(aa_sequence(chain) .== aminoacid_ids)
+    @assert all((isapprox.(ramachandran_angles(chain),dihedrals; atol=1e-5))[2:end-1])
+    return Polypeptide(chain; primary=true, ramachandran=true)
+end
+
+function from_triple_alignment(p_Y::Polypeptide, p_Z::Polypeptide,
+                               X::ObservedChain, M_XYZ::Alignment; chain_id="X")
+    aminoacid_ids = Int.(data(X)[1])
+    dihedrals = data(X)[2]
+    chain = build_biochain_from_triple_alignment(p_Y.chain, p_Z.chain, M_XYZ,
+                                                 aminoacid_ids, dihedrals; id="X")
+    @assert all(aa_sequence(chain) .== aminoacid_ids)
+    @assert all((isapprox.(ramachandran_angles(chain),dihedrals; atol=1e-5))[2:end-1])
+    return Polypeptide(chain; primary=true, ramachandran=true)
+
+end
+
 function from_primary_dihedrals(aminoacid_ids::AbstractArray{<:Integer},
                                 dihedrals::AbstractMatrix{<:Real};
                                 chain_id="X")
@@ -57,6 +79,10 @@ function from_primary_dihedrals(aminoacid_ids::AbstractArray{<:Integer},
     return Polypeptide(chain; primary=true, ramachandran=true)
 end
 
+function to_file(p::Polypeptide, name::String)
+    writepdb("output/pdb/" * name * ".pdb", p.chain)
+end
+
 function from_pdb(id::String, chain_id::String; primary=true, ramachandran=true,
                                                 omega=false, cartesian=false)
     struc = retrievepdb(id, dir="data/pdb")
@@ -64,10 +90,10 @@ function from_pdb(id::String, chain_id::String; primary=true, ramachandran=true,
     return Polypeptide(chain; primary=primary, ramachandran=ramachandran, omega=omega, cartesian=cartesian)
 end
 
-function from_file(name::String; primary=true, ramachandran=true,
+function from_file(name::String, chain_id::String; primary=true, ramachandran=true,
                    omega=false, cartesian=false)
     struc = read("data/pdb/" * name * ".pdb", PDB)
-    chain = struc["X"]
+    chain = struc[chain_id]
     return Polypeptide(chain; primary=primary, ramachandran=ramachandran, omega=omega, cartesian=cartesian)
 end
 

@@ -99,6 +99,7 @@ end
 function ancestor_sampling(M_YZ::Alignment,
                            Y::ObservedChain, Z::ObservedChain,
                            t::Real, ξ::MixtureProductProcess, Λ)
+    @info "reconstructing ancestor...\n"
     C = num_coords(ξ)
     E = num_regimes(ξ)
 
@@ -193,7 +194,7 @@ function trajectory_reconstruction(M_YZ::Alignment, Y::ObservedChain, Z::Observe
     # ______________________________________________________________________________
     # Base case
     if levels == 0
-        return [Y, Z]
+        return [Y, Z], M_YZ
     end
 
     # ______________________________________________________________________________
@@ -204,11 +205,36 @@ function trajectory_reconstruction(M_YZ::Alignment, Y::ObservedChain, Z::Observe
     X, M_XYZ = ancestor_sampling(M_YZ, Y, Z, t, ξ, Λ)
 
     # 2. Reconstruct trajectories recursively on each branch
-    M_YX = subalignment(M_XYZ, [2, 1])
-    traj_YX = trajectory_reconstruction(M_YX, Y, X, ξ, t/2, Λ; levels=levels-1)
+    M_YX  = subalignment(M_XYZ, [2, 1])
+    traj_YX, M_Y_toX = trajectory_reconstruction(M_YX, Y, X, ξ, t/2, Λ; levels=levels-1)
     M_XZ = subalignment(M_XYZ, [1, 3])
-    traj_XZ = trajectory_reconstruction(M_XZ, X, Z, ξ, t/2, Λ; levels=levels-1)
+    traj_XZ, M_X_toZ = trajectory_reconstruction(M_XZ, X, Z, ξ, t/2, Λ; levels=levels-1)
 
-    # Combine the trajectories
-    return [traj_YX; traj_XZ[2:end]]
+    # Combine the trajectories and alignments
+    traj = [traj_YX; traj_XZ[2:end]]
+    M = glue(M_Y_toX, M_X_toZ)
+    return traj, M
+end
+
+function write_trajectory(chains::AbstractVector{ObservedChain},
+                          M::Alignment,
+                          poly_Y::Polypeptide,
+                          poly_Z::Polypeptide,
+                          name::String)
+    N = length(chains)
+
+    alignment = Alignment(data(M), collect(1:N))
+    polypeptides = Vector{Polypeptide}(undef, N)
+    polypeptides[1] = poly_Y
+    polypeptides[N] = poly_Z
+    for i ∈ 2:(N-1)
+        X = chains[i]
+        M_XYZ = subalignment(alignment, [i, 1, N])
+        polypeptides[i] = from_triple_alignment(poly_Y, poly_Z, X, M_XYZ)
+    end
+
+    names = [name * "_$i" for i ∈ 1:N]
+    to_file.(polypeptides, names)
+
+    return polypeptides
 end

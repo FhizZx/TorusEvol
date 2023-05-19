@@ -13,6 +13,8 @@ export
 
     # utils/Backbone
     build_biochain_from_aminoacids_dihedrals,
+    build_biochain_from_aminoacids_dihedrals_alignment,
+    build_biochain_from_triple_alignment,
     id_to_aa,
     aa_to_id,
     aminoacids,
@@ -22,12 +24,15 @@ export
     Polypeptide,
     from_pdb,
     from_file,
+    to_file,
     num_residues,
     num_coords,
     data,
     chain,
     render,
+    from_triple_alignment,
     from_observed_chain,
+    from_aligned_polypeptide,
     from_primary_dihedrals,
 
     # objects/Chains
@@ -51,6 +56,7 @@ export
     row_index,
     subalignment,
     combine,
+    glue,
     mask,
     show_filled_alignment,
 
@@ -169,7 +175,8 @@ export
     logpdfs,
     sample_anc_alignment,
     ancestor_sampling,
-    trajectory_reconstruction
+    trajectory_reconstruction,
+    write_trajectory
 
 
 # Objects

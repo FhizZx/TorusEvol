@@ -58,8 +58,8 @@ end;
 
 @model function jwndiff_prior()
     μ ~ filldist(Uniform(-π, π), 2)
-    σ² ~ filldist(Gamma(π * 0.1), 2)
-    α ~ filldist(Gamma(π * 0.1), 2)
+    σ² ~ filldist(Gamma(1.1), 2)
+    α ~ filldist(Gamma(1.1), 2)
     γ ~ Exponential(1.0)   # jumping rate
     α_corr ~ ScaledBeta(3, 3)
 

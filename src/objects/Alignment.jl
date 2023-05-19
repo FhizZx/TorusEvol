@@ -148,3 +148,18 @@ function combine(parent_id::Int, a1::Alignment, a2::Alignment) :: Alignment
     return Alignment(hcat(columns...), new_ids)
 
 end
+
+
+function glue(a1::Alignment, a2::Alignment) :: Alignment
+    n = num_sequences(a1)
+    m = num_sequences(a2)
+    ids1 = [collect(2:n); 1]
+    ids2 = 10000000 .+ collect(1:m); ids2[1] = 1
+    x = Alignment(data(a1), ids1)
+    y = Alignment(data(a2), ids2)
+    M = combine(1, x, y)
+
+
+    good_data = data(M)[[collect(2:n); 1; collect((n+1):(n+m-1))], :]
+    return Alignment(good_data)
+end

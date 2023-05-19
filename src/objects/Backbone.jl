@@ -6,7 +6,24 @@ using Rotations
 
 const BioChain = BioStructures.Chain
 
+ccmod(x) = rem(x,2π, RoundNearest)
 
+function average_length(a, b)
+    (a + b) / 2
+end
+
+function average_angle(a, b)
+    if a > b
+        tmp = a; a = b; b = tmp
+    end
+    d1 = b - a
+    d2 = a + 2π - b
+    if d1 < d2
+        return a + d1/2
+    else
+        return ccmod(b + d2/2)
+    end
+end
 
 aminoacids = "ARNDCQEGHILKMFPSTWYV"
 id_to_aa(i) = aminoacids[i]
@@ -114,8 +131,13 @@ function build_biochain_from_aminoacids_dihedrals(aminoacid_ids::AbstractArray{<
     return build_chain_from_internals(id, aminoacids, torsion_angles, bond_angles, bond_lengths)
 end
 
-function build_biochain_from_alignment(chain::BioChain,
-                                       alignment::Alignment)
+function build_biochain_from_aminoacids_dihedrals_alignment(chain::BioChain,
+                                                            M_XY::Alignment,
+                                                            aminoacid_ids::AbstractArray{<:Integer},
+                                                            dihedrals::AbstractMatrix{<:Real};
+                                                            id="X")
+    alignment = Alignment(data(M_XY))
+
     maskX = mask(alignment, [[1], [0,1]])
     maskY = mask(alignment, [[0,1], [1]])
 
@@ -127,36 +149,113 @@ function build_biochain_from_alignment(chain::BioChain,
     match_maskX = mask(alignmentX, [[1], [1]])
     match_maskY = mask(alignmentY, [[1], [1]])
 
-    aminoacids = String(id_to_aa.(get_coord(p, "aminoacid")))
+    aminoacids = String(id_to_aa.(vec(aminoacid_ids)))
+    @assert length(aminoacids) == N
 
-    torsion_angles = Matrix{Real}(undef, 3, n)
-    dihedrals = get_coord(p, "ramachadran angles")
-    torsion_angles[1, 2:end] = dihedrals[2, 1:(end-1)]      # ψ
-    torsion_angles[3, 2:end] = dihedrals[1, 2:end]          # ϕ
+    @assert size(dihedrals, 2) == N
+    torsion_angles = Matrix{Float64}(undef, 3, N)
+    torsion_angles[1, 2:end] = dihedrals[2, 1:(end-1)]             # ψ
+    torsion_angles[3, 2:end] = dihedrals[1, 2:end]                 # ϕ
+    # ω
     torsion_angles[2, insert_maskY] .= rand(Normal(ideal_omega_angle...), count(insert_maskY))
     torsion_angles[2, match_maskY] .= omegaangles(chain, standardselector)[match_maskX]
 
     bond_angles_X, bond_lengths_X = backbone_bond_angles_and_lengths(chain)
 
     #TODO write this more succintly
-    bond_angles = Matrix{Real}(undef, 3, n)
-    for i in collect(1:n)[insert_maskY]
+    bond_angles = Matrix{Real}(undef, 3, N)
+    for i in collect(1:N)[insert_maskY]
         bond_angles[1, i] = rand(WrappedNormal(ideal_bond_angle["CA-C-N", aminoacids[i]]...))[1]
         bond_angles[2, i] = rand(WrappedNormal(ideal_bond_angle["C-N-CA", aminoacids[i]]...))[1]
         bond_angles[3, i] = rand(WrappedNormal(ideal_bond_angle["N-CA-C", aminoacids[i]]...))[1]
     end
     bond_angles[:, match_maskY] .= bond_angles_X[:, match_maskX]
 
-    bond_lengths = Matrix{Real}(undef, 3, n)
-    for i in collect(1:n)[insert_maskY]
+    bond_lengths = Matrix{Real}(undef, 3, N)
+    for i in collect(1:N)[insert_maskY]
         bond_lengths[1, i] = abs(rand(Normal(ideal_bond_length["C-N",  aminoacids[i]]...)))
         bond_lengths[2, i] = abs(rand(Normal(ideal_bond_length["N-CA", aminoacids[i]]...)))
         bond_lengths[3, i] = abs(rand(Normal(ideal_bond_length["CA-C", aminoacids[i]]...)))
     end
     bond_lengths[:, match_maskY] .= bond_lengths_X[:, match_maskX]
 
-    return build_chain_from_internals("Y", aminoacids, torsion_angles, bond_angles, bond_lengths)
+    return build_chain_from_internals(id, aminoacids, torsion_angles, bond_angles, bond_lengths)
 end
+
+function build_biochain_from_triple_alignment(chainY::BioChain,
+                                              chainZ::BioChain,
+                                              M_XYZ::Alignment,
+                                              aminoacid_ids::AbstractArray{<:Integer},
+                                              dihedrals::AbstractMatrix{<:Real};
+                                              id="X")
+    alignment = Alignment(data(M_XYZ))
+    X_mask = mask(alignment, [[1], [0,1], [0,1]])
+    alignmentX = slice(alignment, X_mask)
+    Y_mask = mask(alignment, [[0,1], [1], [0,1]])
+    alignmentY = slice(alignment, Y_mask)
+    Z_mask = mask(alignment, [[0,1], [0,1], [1]])
+    alignmentZ = slice(alignment, Z_mask)
+
+
+    X_maskX = mask(alignmentX, [[1], [0], [0]])
+
+    XY_maskX = mask(alignmentX, [[1], [1], [0]])
+    XY_maskY = mask(alignmentY, [[1], [1], [0]])
+
+    XZ_maskX = mask(alignmentX, [[1], [0], [1]])
+    XZ_maskZ = mask(alignmentZ, [[1], [0], [1]])
+
+    XYZ_maskX = mask(alignmentX, [[1], [1], [1]])
+    XYZ_maskY = mask(alignmentY, [[1], [1], [1]])
+    XYZ_maskZ = mask(alignmentZ, [[1], [1], [1]])
+
+    N = count(X_mask)
+
+    aminoacids = String(id_to_aa.(vec(aminoacid_ids)))
+    @assert length(aminoacids) == N
+
+    @assert size(dihedrals, 2) == N
+    torsion_angles = Matrix{Float64}(undef, 3, N)
+    torsion_angles[1, 2:end] = dihedrals[2, 1:(end-1)]             # ψ
+    torsion_angles[3, 2:end] = dihedrals[1, 2:end]                 # ϕ
+    # ω
+    torsion_angles[2, X_maskX] .= rand(Normal(ideal_omega_angle...), count(X_maskX))
+    torsion_angles[2, XY_maskX] .= omegaangles(chainY, standardselector)[XY_maskY]
+    torsion_angles[2, XZ_maskX] .= omegaangles(chainZ, standardselector)[XZ_maskZ]
+    torsion_angles[2, XYZ_maskX] .= average_angle.(omegaangles(chainY, standardselector)[XYZ_maskY],
+                                                   omegaangles(chainZ, standardselector)[XYZ_maskZ])
+
+    bond_angles_Y, bond_lengths_Y = backbone_bond_angles_and_lengths(chainY)
+    bond_angles_Z, bond_lengths_Z = backbone_bond_angles_and_lengths(chainZ)
+
+    #TODO write this more succintly
+    bond_angles = Matrix{Real}(undef, 3, N)
+    for i in collect(1:N)[X_maskX]
+        bond_angles[1, i] = rand(WrappedNormal(ideal_bond_angle["CA-C-N", aminoacids[i]]...))[1]
+        bond_angles[2, i] = rand(WrappedNormal(ideal_bond_angle["C-N-CA", aminoacids[i]]...))[1]
+        bond_angles[3, i] = rand(WrappedNormal(ideal_bond_angle["N-CA-C", aminoacids[i]]...))[1]
+    end
+    bond_angles[:, XY_maskX] .= bond_angles_Y[:, XY_maskY]
+    bond_angles[:, XZ_maskX] .= bond_angles_Z[:, XZ_maskZ]
+    bond_angles[:, XYZ_maskX] .= average_angle.(bond_angles_Y[:, XYZ_maskY],
+                                                bond_angles_Z[:, XYZ_maskZ])
+
+
+    bond_lengths = Matrix{Real}(undef, 3, N)
+    for i in collect(1:N)[X_maskX]
+        bond_lengths[1, i] = abs(rand(Normal(ideal_bond_length["C-N",  aminoacids[i]]...)))
+        bond_lengths[2, i] = abs(rand(Normal(ideal_bond_length["N-CA", aminoacids[i]]...)))
+        bond_lengths[3, i] = abs(rand(Normal(ideal_bond_length["CA-C", aminoacids[i]]...)))
+    end
+    bond_lengths[:, XY_maskX] .= bond_lengths_Y[:, XY_maskY]
+    bond_lengths[:, XZ_maskX] .= bond_lengths_Z[:, XZ_maskZ]
+    bond_lengths[:, XYZ_maskX] .= average_length.(bond_lengths_Y[:, XYZ_maskY],
+                                                  bond_lengths_Z[:, XYZ_maskZ])
+
+    return build_chain_from_internals(id, aminoacids, torsion_angles, bond_angles, bond_lengths)
+end
+
+
 
 function build_chain_from_internals(id::String, aminoacids::String,
                                     torsion_angles::Matrix{<:Real}, # ψ       ω       ϕ
