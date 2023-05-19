@@ -60,6 +60,13 @@ function from_pdb(id::String, chain_id::String; primary=true, ramachandran=true,
     return Polypeptide(chain; primary=primary, ramachandran=ramachandran, omega=omega, cartesian=cartesian)
 end
 
+function from_file(name::String; primary=true, ramachandran=true,
+                   omega=false, cartesian=false)
+    struc = read("data/pdb/" * name * ".pdb", PDB)
+    chain = struc["X"]
+    return Polypeptide(chain; primary=primary, ramachandran=ramachandran, omega=omega, cartesian=cartesian)
+end
+
 Base.length(p::Polypeptide) = length(p.data)
 num_sites(p::Polypeptide) = num_sites(p.data)
 num_coords(p::Polypeptide) = num_coords(p.data)

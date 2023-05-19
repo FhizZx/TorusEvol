@@ -21,6 +21,7 @@ export
     # objects/Polypeptide
     Polypeptide,
     from_pdb,
+    from_file,
     num_residues,
     num_coords,
     data,
