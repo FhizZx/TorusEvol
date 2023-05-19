@@ -109,7 +109,7 @@ function rand(d::ChainJointDistribution)
     t = d.t
 
     # sample pair alignment
-    M_XY = Alignment(rand(AlignmentDistribution(τ)))
+    M_XY = Alignment(rand(AlignmentDistribution(τ)), τ)
     alignmentX = slice(M_XY, mask(M_XY, [[1], [0,1]]))
     XY_maskX = mask(alignmentX, [[1], [1]])
     X_maskX = mask(alignmentX, [[1], [0]])
@@ -151,11 +151,11 @@ end
 struct ChainTransitionDistribution
     ξ::MixtureProductProcess # site level process
     τ::TKF92 # alignment model
-    X::AbstractChain
+    X::ObservedChain
     t::Real
     function ChainTransitionDistribution(ξ::MixtureProductProcess,
                                          τ::TKF92,
-                                         X::AbstractChain)
+                                         X::ObservedChain)
         @assert num_descendants(τ) == 1
         @assert τ.known_ancestor == true
         t = τ.ts[1]
@@ -178,4 +178,56 @@ function logpdfα!(α::AbstractArray{<:Real}, d::ChainTransitionDistribution,
     B = get_B((X, Y))
     fulltranslogpdf!(B, d.ξ, t, X, Y)
     forward!(α, d.τ, B)
+end
+
+function rand(d::ChainTransitionDistribution)
+    ξ = d.ξ
+    τ = d.τ
+    t = d.t
+    X = d.X
+
+    # sample pair alignment
+    N = num_sites(X)
+    model = TKF92([t], τ.λ, τ.μ, τ.r; known_ancestor=false)
+    M_X = Alignment(ones(Int, 1, N))
+    B = zeros(Real, N+1)
+    α = forward_anc(M_X, model, B)
+
+    a = M_X; nn = 0
+    while nn == 0
+        a = backward_sampling_anc(α, model)
+        nn = sequence_lengths(a)[1]
+    end
+
+    M_XY = Alignment(data(a)[[2,1], :])
+
+    alignmentX = slice(M_XY, mask(M_XY, [[1], [0,1]]))
+    XY_maskX = mask(alignmentX, [[1], [1]])
+
+    alignmentY = slice(M_XY, mask(M_XY, [[0,1], [1]]))
+    XY_maskY = mask(alignmentY, [[1], [1]])
+    Y_maskY = mask(alignmentY, [[0], [1]])
+
+    N_Y = length(alignmentY)
+
+    # Sample internal coordinates
+    stat_featsY = randstat(ξ, count(Y_maskY))
+    @assert count(XY_maskX) == count(XY_maskY)
+
+    match_featsX = data(slice(X, XY_maskX, :))
+    match_featsY = randtrans(ξ, t, match_featsX)
+
+    C = num_coords(ξ)
+    featsY = Vector{AbstractArray{Real}}(undef, 0)
+    for c ∈ 1:C
+        d = length(processes(ξ)[c, 1])
+        y = Array{eltype(processes(ξ)[c, 1])}(undef, d, N_Y)
+
+        y[:, XY_maskY] .= match_featsY[c]
+        y[:, Y_maskY] .= stat_featsY[c]
+
+        push!(featsY, y)
+    end
+    Y = ObservedChain(featsY)
+    Y
 end

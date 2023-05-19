@@ -2,7 +2,7 @@ using BioSequences
 using BioStructures
 using Bio3DView
 
-
+const BioModel = BioStructures.Model
 
 # Methods to extract internal coordinates data from BioStructures.Chain object
 aa_sequence(chain::Chain) = reshape(aa_to_id.(collect(string(LongAA(chain, standardselector)))), 1, :)
@@ -81,7 +81,7 @@ end
 function render(ps...; aligned=true)
     chains = chain.(collect(ps))
 
-    model = Model()
+    model = BioModel()
     new_chains = similar(chains)
 
     ref = chains[1]

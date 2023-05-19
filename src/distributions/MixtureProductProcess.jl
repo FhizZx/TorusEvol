@@ -239,6 +239,27 @@ function randjoint(m::MixtureProductProcess, t::Real, N::Integer)
     return featsX, featsY
 end
 
+function randtrans(m::MixtureProductProcess, t::Real, featsX)
+    N = size(featsX[1], 2)
+    regimes = rand(Categorical(weights(m)), N)
+    procs = processes(m)[:, regimes]
+    C = num_coords(m)
+    featsY = Vector{AbstractArray{Real}}(undef, 0)
+    for c ∈ 1:C
+        d = length(processes(m)[c, 1])
+        x = featsX[c]
+        y = Array{eltype(processes(m)[c, 1])}(undef, d, N)
+        for n ∈ 1:N
+            xr = x[:, n]
+            yr = randtrans(procs[c, n], t, xr)
+            y[:, n] .= yr
+        end
+        push!(featsX, x); push!(featsY, y)
+    end
+    return featsY
+end
+
+
 show(io::IO, p::MixtureProductProcess) = print(io, "MixtureProductProcess(" *
                                                    "\nnum coords: " * string(num_coords(p)) *
                                                    "\nnum regimes: " * string(num_regimes(p)) *

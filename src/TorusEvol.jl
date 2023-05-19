@@ -86,6 +86,7 @@ export
     fulljointlogpdf,
     randjoint,
     randstat,
+    randtrans,
 
     #distributions/AlignmentProcess
     AlignmentDistribution,
@@ -142,8 +143,20 @@ export
     backward_sampling,
     forward_anc,
     backward_sampling_anc,
-    _logpdf
+    _logpdf,
 
+    # inference/Priors.jl
+    tkf92_prior,
+    jwndiff_prior,
+    ScaledBeta,
+    CompetingExponential,
+
+    # inference/Proposals.jl
+    torus_proposal,
+    mv_rw_proposal,
+    rw_proposal,
+    Θ_samplers,
+    τ_samplers
 
 
 # Objects
@@ -171,6 +184,8 @@ include("distributions/EvolHMM.jl")
 include("distributions/AlignmentProcess.jl")
 include("distributions/ChainProcess.jl")
 
+include("inference/Priors.jl")
+include("inference/Proposals.jl")
 
 
 

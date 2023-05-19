@@ -100,5 +100,11 @@ function randjoint(p::AbstractProcess, t::Real)
     return x, y
 end
 
+function randtrans(p::AbstractProcess, t::Real, x)
+    y = rand(transdist(p, t, x))
+    return y
+end
+
+
 Base.length(p::AbstractProcess) = length(statdist(p))
 Base.eltype(p::AbstractProcess) = eltype(statdist(p))
