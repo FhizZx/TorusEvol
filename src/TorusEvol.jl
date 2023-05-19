@@ -27,6 +27,7 @@ export
     data,
     chain,
     render,
+    from_observed_chain,
     from_primary_dihedrals,
 
     # objects/Chains
@@ -157,7 +158,18 @@ export
     mv_rw_proposal,
     rw_proposal,
     Θ_samplers,
-    τ_samplers
+    τ_samplers,
+
+    #inference/AncestorSampling.jl
+    bisection_sampler,
+    bisection_sampler_sub,
+    sample_anc_coords_wn,
+    sample_anc_coords_sub,
+    sample_anc_coords,
+    logpdfs,
+    sample_anc_alignment,
+    ancestor_sampling,
+    trajectory_reconstruction
 
 
 # Objects
@@ -187,6 +199,7 @@ include("distributions/ChainProcess.jl")
 
 include("inference/Priors.jl")
 include("inference/Proposals.jl")
+include("inference/AncestorSampling.jl")
 
 
 

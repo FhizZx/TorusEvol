@@ -44,6 +44,10 @@ function Polypeptide(chain::BioStructures.Chain; primary=true, ramachandran=true
     return Polypeptide(ObservedChain(feats), row_names, rows, chain)
 end
 
+function from_observed_chain(X::ObservedChain)
+    return from_primary_dihedrals(Int.(data(X)[1]), data(X)[2])
+end
+
 function from_primary_dihedrals(aminoacid_ids::AbstractArray{<:Integer},
                                 dihedrals::AbstractMatrix{<:Real};
                                 chain_id="X")
