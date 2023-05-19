@@ -165,6 +165,7 @@ export
     rw_proposal,
     Θ_samplers,
     τ_samplers,
+    t_samplers,
 
     #inference/AncestorSampling.jl
     bisection_sampler,

@@ -151,11 +151,11 @@ end
 struct ChainTransitionDistribution
     ξ::MixtureProductProcess # site level process
     τ::TKF92 # alignment model
-    X::ObservedChain
+    X::AbstractChain
     t::Real
     function ChainTransitionDistribution(ξ::MixtureProductProcess,
                                          τ::TKF92,
-                                         X::ObservedChain)
+                                         X::AbstractChain)
         @assert num_descendants(τ) == 1
         @assert τ.known_ancestor == true
         t = τ.ts[1]

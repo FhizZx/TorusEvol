@@ -17,3 +17,5 @@ rw_proposal(x, var) = Normal(x, var)
 
 τ_samplers = [MH(Symbol("τ.λμ") => v -> mv_rw_proposal(v, [0.2 0.02; 0.02 0.2])),
               MH(Symbol("τ.r") => x -> rw_proposal(x, 0.2))]
+
+t_samplers = [MH(:t => v -> mv_rw_proposal(v, 0.1*I))]
