@@ -7,6 +7,7 @@ using Rotations
 const BioChain = BioStructures.Chain
 
 
+
 aminoacids = "ARNDCQEGHILKMFPSTWYV"
 id_to_aa(i) = aminoacids[i]
 num_aa = length(aminoacids)
