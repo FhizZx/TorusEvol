@@ -86,7 +86,7 @@ function backbone_bond_angles_and_lengths(chain::BioChain)
         for j ∈ 1:3
             atoms[j] = new_atoms[j]
             bond_angles[j, i] = bondangle(atoms[j%3+1], atoms[(j+1)%3+1], atoms[j])
-            bond_lengths[j, i] = distance(atoms[(j+1)%3+1], atoms[j])
+            bond_lengths[j, i] = BioStructures.distance(atoms[(j+1)%3+1], atoms[j])
         end
     end
     return bond_angles, bond_lengths

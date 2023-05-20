@@ -27,7 +27,7 @@ end
 end
 
 
-function sample_anc_coords_wn(p, descs, t; burn_in=300)
+function sample_anc_coords_wn(p, descs, t; burn_in=600)
     sampler = MH(:x => v -> MixtureModel([WrappedNormal(v, I), WrappedNormal(v, 20*I)], [0.8, 0.2]))
     n = size(descs[1], 2)
     D = length(descs)
@@ -56,9 +56,17 @@ function sample_anc_coords_sub(p, descs, t; burn_in=5)
     return X
 end
 
+function sample_anc_coords_sub2(p, descs, t; burn_in=5)
+    n = size(descs[1], 2)
+    for i ∈ 1:n
+        X[1, i] = 1
+    end
+    return X
+end
+
 function sample_anc_coords(p, descs, t)
     if eltype(p) <: Integer
-        return sample_anc_coords_sub(p, descs, t)
+        return sample_anc_coords_sub2(p, descs, t)
     else
         return sample_anc_coords_wn(p, descs, t)
     end
