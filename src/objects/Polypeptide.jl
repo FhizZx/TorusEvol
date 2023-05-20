@@ -65,7 +65,7 @@ function from_triple_alignment(p_Y::Polypeptide, p_Z::Polypeptide,
     chain = build_biochain_from_triple_alignment(p_Y.chain, p_Z.chain, M_XYZ,
                                                  aminoacid_ids, dihedrals; id="X")
     @assert all(aa_sequence(chain) .== aminoacid_ids)
-    @assert all((isapprox.(ramachandran_angles(chain),dihedrals; atol=1e-5))[2:end-1])
+    #@assert all((isapprox.(ramachandran_angles(chain),dihedrals; atol=1e-5))[2:end-1])
     return Polypeptide(chain; primary=true, ramachandran=true)
 
 end

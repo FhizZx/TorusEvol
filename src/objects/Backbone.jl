@@ -237,8 +237,8 @@ function build_biochain_from_triple_alignment(chainY::BioChain,
     end
     bond_angles[:, XY_maskX] .= bond_angles_Y[:, XY_maskY]
     bond_angles[:, XZ_maskX] .= bond_angles_Z[:, XZ_maskZ]
-    bond_angles[:, XYZ_maskX] .= average_angle.(bond_angles_Y[:, XYZ_maskY],
-                                                bond_angles_Z[:, XYZ_maskZ])
+    #bond_angles[:, XYZ_maskX] .= average_angle.(bond_angles_Y[:, XYZ_maskY], bond_angles_Z[:, XYZ_maskZ])
+    bond_angles[:, XYZ_maskX] .= bond_angles_Y[:, XYZ_maskY]
 
 
     bond_lengths = Matrix{Real}(undef, 3, N)
@@ -249,8 +249,8 @@ function build_biochain_from_triple_alignment(chainY::BioChain,
     end
     bond_lengths[:, XY_maskX] .= bond_lengths_Y[:, XY_maskY]
     bond_lengths[:, XZ_maskX] .= bond_lengths_Z[:, XZ_maskZ]
-    bond_lengths[:, XYZ_maskX] .= average_length.(bond_lengths_Y[:, XYZ_maskY],
-                                                  bond_lengths_Z[:, XYZ_maskZ])
+    #bond_lengths[:, XYZ_maskX] .= average_length.(bond_lengths_Y[:, XYZ_maskY],bond_lengths_Z[:, XYZ_maskZ])
+    bond_lengths[:, XYZ_maskX] .= bond_lengths_Y[:, XYZ_maskY]
 
     return build_chain_from_internals(id, aminoacids, torsion_angles, bond_angles, bond_lengths)
 end
