@@ -163,3 +163,58 @@ function glue(a1::Alignment, a2::Alignment) :: Alignment
     good_data = data(M)[[collect(2:n); 1; collect((n+1):(n+m-1))], :]
     return Alignment(good_data)
 end
+
+function alignment_path(M::Alignment)
+    path = Int[]
+    depth = 0
+    for col ∈ M
+        if col[1] == 1
+            depth += 1
+        end
+        if col[2] == 1
+            push!(path, depth)
+        end
+    end
+    return path
+end
+
+function pairwise_distance(M1::Alignment, M2::Alignment)
+    @assert num_sequences(M1) == 2 && num_sequences(M2) == 2
+    @assert sequence_lengths(M1) == sequence_lengths(M2)
+    m = sequence_lengths(M1)[2]
+    path1 = alignment_path(M1)
+    path2 = alignment_path(M2)
+    area = 0
+    for j ∈ 1:m
+        area += abs(path1[j] - path2[j])
+    end
+    return area
+end
+
+function triple_distance(M1::Alignment, M2::Alignment)
+    @assert num_sequences(M1) == 3 && num_sequences(M2) == 3
+    @assert sequence_lengths(M1) == sequence_lengths(M2)
+    res = 0
+    res += pairwise_distance(subalignment(M1, [1, 2]), subalignment(M2, [1, 2]))
+    res += pairwise_distance(subalignment(M1, [1, 3]), subalignment(M2, [1, 3]))
+    res += pairwise_distance(subalignment(M1, [2, 3]), subalignment(M2, [2, 3]))
+    return res
+end
+
+function distance(M1::Alignment, M2::Alignment)
+    if num_sequences(M1) == 3
+        return triple_distance(M1, M2)
+    elseif num_sequences(M1) == 2
+        return pairwise_distance(M1, M2)
+    end
+end
+
+
+function covariance_sum(v::AbstractVector{Alignment})
+    N = length(v)
+    res = 0
+    for i ∈ 1:N, j ∈ 1:N
+        res += distance(v[i], v[j])
+    end
+    return res / (N-1)
+end

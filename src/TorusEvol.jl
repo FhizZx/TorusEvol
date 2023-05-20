@@ -59,6 +59,11 @@ export
     glue,
     mask,
     show_filled_alignment,
+    alignment_path,
+    triple_distance,
+    pairwise_distance,
+    distance,
+    covariance_sum,
 
 
     # models/TKF92
@@ -116,6 +121,7 @@ export
     # distributions/WrappedNormal
     WrappedNormal,
     cmod,
+    ang_dist,
     unwrapped,
     lattice,
     _logpdf!,
