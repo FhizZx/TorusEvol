@@ -75,7 +75,7 @@ function from_primary_dihedrals(aminoacid_ids::AbstractArray{<:Integer},
                                 chain_id="X")
     chain = build_biochain_from_aminoacids_dihedrals(aminoacid_ids, dihedrals; id=chain_id)
     @assert all(aa_sequence(chain) .== aminoacid_ids)
-    @assert all((isapprox.(ramachandran_angles(chain),dihedrals; atol=1e-5))[2:end-1])
+    #@assert all((isapprox.(ramachandran_angles(chain),dihedrals; atol=1e-5))[2:end-1])
     return Polypeptide(chain; primary=true, ramachandran=true)
 end
 

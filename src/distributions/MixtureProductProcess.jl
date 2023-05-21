@@ -53,6 +53,24 @@ end
     return r
 end
 
+@memoize function fulltranslogpdf!(r::AbstractMatrix{<:Real},
+                                   p::MixtureProductProcess,
+                                   t::Real,
+                                   X::ObservedChain,
+                                   Y::ObservedChain)
+    n = num_sites(X)
+    m = num_sites(Y)
+    r .= -Inf
+
+    @views jointlogpdf!(r[1:n, 1:m], p, t, X, Y)
+    @views statlogpdf!(r[1:n, m+1], p, X)
+    r[1:n, 1:m] .-= r[1:n, m+1]
+    r[1:n+1, m+1] .= 0
+    @views statlogpdf!(r[n+1, 1:m], p, Y)
+    return r
+end
+
+
 @memoize function fulljointlogpdf!(r::AbstractMatrix{<:Real},
                      p::MixtureProductProcess, t::Real,
                      X::ObservedChain,

@@ -1,17 +1,20 @@
 
 @model function pair_parameter_inference(pairs)
+    N = length(pairs)
     # ______________________________________________________________________________
     # Step 1 - Sample prior parameters
 
-    # Time parameter
-    t ~ Exponential(1.0)
+    # Time parameter for each pair
+    for i ∈ 1:D
+        t[i] ~ Exponential(1.0)
+    end
     # Alignment parameters
     @submodel prefix="τ" Λ = tkf92_prior()
     # Dihedral parameters
     @submodel prefix="Θ" Ξ = jwndiff_prior()
     # Check parameter validity
-    if t ≤ 0 || any(isnan.(Ξ)) || any(isnan.(Λ))
-        Turing.@addlogprob! -Inf; return # Reject sample
+    if any(t .≤ 0) || any(isnan.(Ξ)) || any(isnan.(Λ))
+        reject_sample()
     end
 
     # ______________________________________________________________________________
@@ -27,14 +30,13 @@
     # Alignment model
     τ = TKF92([t], Λ...)
 
-    # Chain level model
-    Γ = ChainJointDistribution(ξ, τ, t)
-
     # ______________________________________________________________________________
-    # Step 3 - Observe each pair X, Y by proxy of their joint probability under Γ
-    for (X, Y) ∈ pairs
-        (X, Y) ~ Γ
+    # Step 3 - Observe each pair X, Y by proxy of their joint probability
+    for i ∈ 1:N
+        X, Y = pairs[i]
+        τ = TKF92([t[i]], Λ...)
+        (X, Y) ~ ChainJointDistribution(ξ, τ)
     end
 
-    return Γ
+    return t, Λ, Ξ
 end
